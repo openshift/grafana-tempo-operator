@@ -6,6 +6,20 @@ metadata:
       [
         {
           "apiVersion": "tempo.grafana.com/v1alpha1",
+          "kind": "TempoMonolithic",
+          "metadata": {
+            "name": "sample"
+          },
+          "spec": {
+            "storage": {
+              "traces": {
+                "backend": "memory"
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "tempo.grafana.com/v1alpha1",
           "kind": "TempoStack",
           "metadata": {
             "name": "sample"
@@ -41,8 +55,8 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Logging & Tracing,Monitoring
-    containerImage: ghcr.io/grafana/tempo-operator/tempo-operator
-    createdAt: "2023-12-31T18:14:24Z"
+    containerImage: ghcr.io/grafana/tempo-operator/tempo-operator:v0.7.0
+    createdAt: "2024-01-30T17:07:51Z"
     description: Create and manage deployments of Tempo, a high-scale distributed
       tracing backend.
     operatorframework.io/cluster-monitoring: "true"
@@ -51,12 +65,56 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/grafana/tempo-operator
     support: Grafana Tempo Operator SIG
-  name: tempo-operator.v0.6.0
+  name: tempo-operator.v0.7.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: TempoMonolithic is the Schema for the tempomonolithics API.
+      displayName: Tempo Monolithic
+      kind: TempoMonolithic
+      name: tempomonolithics.tempo.grafana.com
+      specDescriptors:
+      - description: Tempo defines any extra Tempo configuration, which will be merged
+          with the operator's generated Tempo configuration
+        displayName: Tempo Extra Configurations
+        path: extraConfig.tempo
+      - description: caName is the name of a ConfigMap containing a CA certificate
+          (service-ca.crt). It needs to be in the same namespace as the Tempo custom
+          resource.
+        displayName: CA ConfigMap Name
+        path: ingestion.otlp.grpc.tls.caName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:ConfigMap
+      - description: certName is the name of a Secret containing a certificate (tls.crt)
+          and private key (tls.key). It needs to be in the same namespace as the Tempo
+          custom resource.
+        displayName: Certificate Secret Name
+        path: ingestion.otlp.grpc.tls.certName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: minVersion defines the minimum acceptable TLS version.
+        displayName: Min TLS Version
+        path: ingestion.otlp.grpc.tls.minVersion
+      - description: caName is the name of a ConfigMap containing a CA certificate
+          (service-ca.crt). It needs to be in the same namespace as the Tempo custom
+          resource.
+        displayName: CA ConfigMap Name
+        path: ingestion.otlp.http.tls.caName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:ConfigMap
+      - description: certName is the name of a Secret containing a certificate (tls.crt)
+          and private key (tls.key). It needs to be in the same namespace as the Tempo
+          custom resource.
+        displayName: Certificate Secret Name
+        path: ingestion.otlp.http.tls.certName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: minVersion defines the minimum acceptable TLS version.
+        displayName: Min TLS Version
+        path: ingestion.otlp.http.tls.minVersion
+      version: v1alpha1
     - description: TempoStack is the spec for Tempo deployments.
       displayName: TempoStack
       kind: TempoStack
@@ -89,7 +147,9 @@ spec:
       specDescriptors:
       - displayName: Extra Configurations
         path: extraConfig
-      - displayName: Tempo Extra Configurations
+      - description: Tempo defines any extra Tempo configuration, which will be merged
+          with the operator's generated Tempo configuration
+        displayName: Tempo Extra Configurations
         path: extraConfig.tempo
       - description: HashRing defines the spec for the distributed hash ring configuration.
         displayName: Hash Ring
@@ -378,22 +438,21 @@ spec:
       - description: TLS defines TLS configuration for distributor receivers
         displayName: TLS
         path: template.distributor.tls
-      - description: caName is the name of a ConfigMap containing a CA certificate.
-          It needs to be in the same namespace as the Tempo custom resource.
+      - description: caName is the name of a ConfigMap containing a CA certificate
+          (service-ca.crt). It needs to be in the same namespace as the Tempo custom
+          resource.
         displayName: CA ConfigMap Name
         path: template.distributor.tls.caName
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:ConfigMap
-      - description: certName is the name of a Secret containing a certificate and
-          the private key It needs to be in the same namespace as the Tempo custom
-          resource.
+      - description: certName is the name of a Secret containing a certificate (tls.crt)
+          and private key (tls.key). It needs to be in the same namespace as the Tempo
+          custom resource.
         displayName: Certificate Secret Name
         path: template.distributor.tls.certName
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Secret
-      - description: minVersion is the name of a Secret containing a certificate and
-          the private key It needs to be in the same namespace as the Tempo custom
-          resource.
+      - description: minVersion defines the minimum acceptable TLS version.
         displayName: Min TLS Version
         path: template.distributor.tls.minVersion
       - description: Tolerations defines component specific pod tolerations.
@@ -746,6 +805,32 @@ spec:
         - apiGroups:
           - tempo.grafana.com
           resources:
+          - tempomonolithics
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tempo.grafana.com
+          resources:
+          - tempomonolithics/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - tempo.grafana.com
+          resources:
+          - tempomonolithics/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - tempo.grafana.com
+          resources:
           - tempostacks
           verbs:
           - create
@@ -815,14 +900,14 @@ spec:
                 - --config=controller_manager_config.yaml
                 env:
                 - name: RELATED_IMAGE_TEMPO
-                  value: docker.io/grafana/tempo:2.3.0
+                  value: docker.io/grafana/tempo:2.3.1
                 - name: RELATED_IMAGE_TEMPO_QUERY
-                  value: docker.io/grafana/tempo-query:2.3.0
+                  value: docker.io/grafana/tempo-query:2.3.1
                 - name: RELATED_IMAGE_TEMPO_GATEWAY
                   value: quay.io/observatorium/api:main-2023-11-20-81f8fdf
                 - name: RELATED_IMAGE_TEMPO_GATEWAY_OPA
                   value: quay.io/observatorium/opa-openshift:main-2023-10-13-13d8960
-                image: ghcr.io/grafana/tempo-operator/tempo-operator:v0.6.0
+                image: ghcr.io/grafana/tempo-operator/tempo-operator:v0.7.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -959,15 +1044,15 @@ spec:
   provider:
     name: Grafana Tempo Operator SIG
   relatedImages:
-  - image: docker.io/grafana/tempo:2.3.0
+  - image: docker.io/grafana/tempo:2.3.1
     name: tempo
-  - image: docker.io/grafana/tempo-query:2.3.0
+  - image: docker.io/grafana/tempo-query:2.3.1
     name: tempo-query
   - image: quay.io/observatorium/api:main-2023-11-20-81f8fdf
     name: tempo-gateway
   - image: quay.io/observatorium/opa-openshift:main-2023-10-13-13d8960
     name: tempo-gateway-opa
-  version: 0.6.0
+  version: 0.7.0
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -989,6 +1074,26 @@ spec:
     targetPort: 9443
     type: MutatingAdmissionWebhook
     webhookPath: /mutate-tempo-grafana-com-v1alpha1-tempostack
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: tempo-operator-controller
+    failurePolicy: Fail
+    generateName: vtempomonolithic.kb.io
+    rules:
+    - apiGroups:
+      - tempo.grafana.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - tempomonolithics
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-tempo-grafana-com-v1alpha1-tempomonolithic
   - admissionReviewVersions:
     - v1
     containerPort: 443

@@ -518,61 +518,11 @@ PodStatusMap
 </tr></tbody>
 </table>
 
-## Defaulter { #tempo-grafana-com-v1alpha1-Defaulter }
-
-<div>
-
-<p>Defaulter implements the CustomDefaulter interface.</p>
-
-</div>
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>Field</th>
-
-<th>Description</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td>
-
-<code>ctrlConfig</code><br/>
-
-<em>
-
-<a href="../v1/feature-gates.md#tempo-grafana-com-v1alpha1-ProjectConfig">
-
-Feature Gates.ProjectConfig
-
-</a>
-
-</em>
-
-</td>
-
-<td>
-
-</td>
-</tr>
-
-</tbody>
-</table>
-
 ## ExtraConfigSpec { #tempo-grafana-com-v1alpha1-ExtraConfigSpec }
 
 <p>
 
-(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoStackSpec">TempoStackSpec</a>)
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">TempoMonolithicSpec</a>, <a href="#tempo-grafana-com-v1alpha1-TempoStackSpec">TempoStackSpec</a>)
 
 </p>
 
@@ -620,6 +570,8 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 <td>
 
 <em>(Optional)</em>
+
+<p>Tempo defines any extra Tempo configuration, which will be merged with the operator&rsquo;s generated Tempo configuration</p>
 
 </td>
 </tr>
@@ -1390,7 +1342,7 @@ RateLimitSpec
 
 <p>
 
-(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoStackSpec">TempoStackSpec</a>)
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">TempoMonolithicSpec</a>, <a href="#tempo-grafana-com-v1alpha1-TempoStackSpec">TempoStackSpec</a>)
 
 </p>
 
@@ -1607,6 +1559,1215 @@ using an in-process OpenPolicyAgent Rego authorizer.</p>
 </td>
 
 </tr></tbody>
+</table>
+
+## MonolithicIngestionOTLPProtocolsGRPCSpec { #tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPProtocolsGRPCSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPSpec">MonolithicIngestionOTLPSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicIngestionOTLPProtocolsGRPCSpec defines the settings for OTLP ingestion over GRPC.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if OTLP over gRPC is enabled</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>tls</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-TLSSpec">
+
+TLSSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>TLS defines the TLS configuration for OTLP/gRPC ingestion</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicIngestionOTLPProtocolsHTTPSpec { #tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPProtocolsHTTPSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPSpec">MonolithicIngestionOTLPSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicIngestionOTLPProtocolsHTTPSpec defines the settings for OTLP ingestion over HTTP.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if OTLP over HTTP is enabled</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>tls</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-TLSSpec">
+
+TLSSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>TLS defines the TLS configuration for OTLP/HTTP ingestion</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicIngestionOTLPSpec { #tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionSpec">MonolithicIngestionSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicIngestionOTLPSpec defines the settings for OTLP ingestion.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>grpc</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPProtocolsGRPCSpec">
+
+MonolithicIngestionOTLPProtocolsGRPCSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>GRPC defines the OTLP/gRPC configuration</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>http</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPProtocolsHTTPSpec">
+
+MonolithicIngestionOTLPProtocolsHTTPSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>HTTP defines the OTLP/HTTP configuration</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicIngestionSpec { #tempo-grafana-com-v1alpha1-MonolithicIngestionSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">TempoMonolithicSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicIngestionSpec defines the ingestion settings.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>otlp</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPSpec">
+
+MonolithicIngestionOTLPSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>OTLP defines the ingestion configuration for OTLP</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicJaegerUIIngressSpec { #tempo-grafana-com-v1alpha1-MonolithicJaegerUIIngressSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicJaegerUISpec">MonolithicJaegerUISpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicJaegerUIIngressSpec defines the settings for the Jaeger UI ingress.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if an Ingress object should be created for Jaeger UI</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>annotations</code><br/>
+
+<em>
+
+map[string]string
+
+</em>
+
+</td>
+
+<td>
+
+<p>Annotations defines the annotations of the Ingress object.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>host</code><br/>
+
+<em>
+
+string
+
+</em>
+
+</td>
+
+<td>
+
+<p>Host defines the hostname of the Ingress object.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>ingressClassName</code><br/>
+
+<em>
+
+string
+
+</em>
+
+</td>
+
+<td>
+
+<p>IngressClassName is the name of an IngressClass cluster resource. Ingress
+controller implementations use this field to know whether they should be
+serving this Ingress resource.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicJaegerUIRouteSpec { #tempo-grafana-com-v1alpha1-MonolithicJaegerUIRouteSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicJaegerUISpec">MonolithicJaegerUISpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicJaegerUIRouteSpec defines the settings for the Jaeger UI route.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if a Route object should be created for Jaeger UI</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>annotations</code><br/>
+
+<em>
+
+map[string]string
+
+</em>
+
+</td>
+
+<td>
+
+<p>Annotations defines the annotations of the Route object.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>host</code><br/>
+
+<em>
+
+string
+
+</em>
+
+</td>
+
+<td>
+
+<p>Host defines the hostname of the Route object.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>termination</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-TLSRouteTerminationType">
+
+TLSRouteTerminationType
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Termination specifies the termination type. Default: edge.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicJaegerUISpec { #tempo-grafana-com-v1alpha1-MonolithicJaegerUISpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">TempoMonolithicSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicJaegerUISpec defines the settings for the Jaeger UI.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if the Jaeger UI should be enabled</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>ingress</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicJaegerUIIngressSpec">
+
+MonolithicJaegerUIIngressSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Ingress defines the ingress configuration for Jaeger UI</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>route</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicJaegerUIRouteSpec">
+
+MonolithicJaegerUIRouteSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Route defines the route configuration for Jaeger UI</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityMetricsPrometheusRulesSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsPrometheusRulesSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec">MonolithicObservabilityMetricsSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityMetricsPrometheusRulesSpec defines the PrometheusRules settings.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if the operator should create PrometheusRules for this Tempo deployment</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityMetricsServiceMonitorsSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsServiceMonitorsSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec">MonolithicObservabilityMetricsSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityMetricsServiceMonitorsSpec defines the ServiceMonitor settings.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if the operator should create ServiceMonitors for this Tempo deployment</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityMetricsSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilitySpec">MonolithicObservabilitySpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityMetricsSpec defines the metrics settings of the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>serviceMonitors</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsServiceMonitorsSpec">
+
+MonolithicObservabilityMetricsServiceMonitorsSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>ServiceMonitors defines the ServiceMonitor configuration</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>prometheusRules</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsPrometheusRulesSpec">
+
+MonolithicObservabilityMetricsPrometheusRulesSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>ServiceMonitors defines the PrometheusRule configuration</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilitySpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilitySpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">TempoMonolithicSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilitySpec defines the observability settings of the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>metrics</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec">
+
+MonolithicObservabilityMetricsSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Metrics defines the metrics configuration of the Tempo deployment</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicStorageSpec { #tempo-grafana-com-v1alpha1-MonolithicStorageSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">TempoMonolithicSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicStorageSpec defines the storage for the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>traces</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicTracesStorageSpec">
+
+MonolithicTracesStorageSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Traces defines the backend storage configuration for traces</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicTracesStorageBackend { #tempo-grafana-com-v1alpha1-MonolithicTracesStorageBackend }
+
+(<code>string</code> alias)
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicTracesStorageSpec">MonolithicTracesStorageSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicTracesStorageBackend defines the backend storage for traces.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Value</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody><tr><td><p>&#34;memory&#34;</p></td>
+
+<td><p>MonolithicTracesStorageBackendMemory defines storing traces in a tmpfs (in-memory filesystem).</p>
+</td>
+
+</tr><tr><td><p>&#34;pv&#34;</p></td>
+
+<td><p>MonolithicTracesStorageBackendPV defines storing traces in a Persistent Volume.</p>
+</td>
+
+</tr></tbody>
+</table>
+
+## MonolithicTracesStoragePVSpec { #tempo-grafana-com-v1alpha1-MonolithicTracesStoragePVSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicTracesStorageSpec">MonolithicTracesStorageSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicTracesStoragePVSpec defines the Persistent Volume configuration.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>size</code><br/>
+
+<em>
+
+k8s.io/apimachinery/pkg/api/resource.Quantity
+
+</em>
+
+</td>
+
+<td>
+
+<p>Size defines the size of the Persistent Volume for storing the traces. Defaults to 10Gi.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicTracesStorageSpec { #tempo-grafana-com-v1alpha1-MonolithicTracesStorageSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicStorageSpec">MonolithicStorageSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicTracesStorageSpec defines the traces storage for the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>backend</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicTracesStorageBackend">
+
+MonolithicTracesStorageBackend
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Backend defines the backend for storing traces. Default: memory</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>wal</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicTracesStorageWALSpec">
+
+MonolithicTracesStorageWALSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>WAL defines the write-ahead logging (WAL) configuration</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>pv</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicTracesStoragePVSpec">
+
+MonolithicTracesStoragePVSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>PV defines the Persistent Volume configuration</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicTracesStorageWALSpec { #tempo-grafana-com-v1alpha1-MonolithicTracesStorageWALSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicTracesStorageSpec">MonolithicTracesStorageSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicTracesStorageWALSpec defines the write-ahead logging (WAL) configuration.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>size</code><br/>
+
+<em>
+
+k8s.io/apimachinery/pkg/api/resource.Quantity
+
+</em>
+
+</td>
+
+<td>
+
+<p>Size defines the size of the Persistent Volume for storing the WAL. Defaults to 10Gi.</p>
+
+</td>
+</tr>
+
+</tbody>
 </table>
 
 ## OIDCSpec { #tempo-grafana-com-v1alpha1-OIDCSpec }
@@ -2401,126 +3562,6 @@ QueryLimit
 </tbody>
 </table>
 
-## ReceiversTLSSpec { #tempo-grafana-com-v1alpha1-ReceiversTLSSpec }
-
-<p>
-
-(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoDistributorSpec">TempoDistributorSpec</a>)
-
-</p>
-
-<div>
-
-<p>ReceiversTLSSpec is the TLS configuration for the receivers.</p>
-
-</div>
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>Field</th>
-
-<th>Description</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td>
-
-<code>enabled</code><br/>
-
-<em>
-
-bool
-
-</em>
-
-</td>
-
-<td>
-
-</td>
-</tr>
-
-<tr>
-
-<td>
-
-<code>caName</code><br/>
-
-<em>
-
-string
-
-</em>
-
-</td>
-
-<td>
-
-<p>caName is the name of a ConfigMap containing a CA certificate.
-It needs to be in the same namespace as the Tempo custom resource.</p>
-
-</td>
-</tr>
-
-<tr>
-
-<td>
-
-<code>certName</code><br/>
-
-<em>
-
-string
-
-</em>
-
-</td>
-
-<td>
-
-<p>certName is the name of a Secret containing a certificate and the private key
-It needs to be in the same namespace as the Tempo custom resource.</p>
-
-</td>
-</tr>
-
-<tr>
-
-<td>
-
-<code>minVersion</code><br/>
-
-<em>
-
-string
-
-</em>
-
-</td>
-
-<td>
-
-<em>(Optional)</em>
-
-<p>minVersion is the name of a Secret containing a certificate and the private key
-It needs to be in the same namespace as the Tempo custom resource.</p>
-
-</td>
-</tr>
-
-</tbody>
-</table>
-
 ## Resources { #tempo-grafana-com-v1alpha1-Resources }
 
 <p>
@@ -3232,7 +4273,7 @@ SubjectKind
 
 <p>
 
-(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-RouteSpec">RouteSpec</a>)
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicJaegerUIRouteSpec">MonolithicJaegerUIRouteSpec</a>, <a href="#tempo-grafana-com-v1alpha1-RouteSpec">RouteSpec</a>)
 
 </p>
 
@@ -3279,15 +4320,128 @@ responsible for decrypting traffic.</p>
 and re-encrypt using a new certificate.</p>
 </td>
 
-</tr><tr><td><p>&#34;passthrough&#34;</p></td>
-
-<td></td>
-
-</tr><tr><td><p>&#34;edge&#34;</p></td>
-
-<td></td>
-
 </tr></tbody>
+</table>
+
+## TLSSpec { #tempo-grafana-com-v1alpha1-TLSSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPProtocolsGRPCSpec">MonolithicIngestionOTLPProtocolsGRPCSpec</a>, <a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPProtocolsHTTPSpec">MonolithicIngestionOTLPProtocolsHTTPSpec</a>, <a href="#tempo-grafana-com-v1alpha1-TempoDistributorSpec">TempoDistributorSpec</a>)
+
+</p>
+
+<div>
+
+<p>TLSSpec is the TLS configuration.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>enabled defines if TLS is enabled.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>caName</code><br/>
+
+<em>
+
+string
+
+</em>
+
+</td>
+
+<td>
+
+<p>caName is the name of a ConfigMap containing a CA certificate (service-ca.crt).
+It needs to be in the same namespace as the Tempo custom resource.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>certName</code><br/>
+
+<em>
+
+string
+
+</em>
+
+</td>
+
+<td>
+
+<p>certName is the name of a Secret containing a certificate (tls.crt) and private key (tls.key).
+It needs to be in the same namespace as the Tempo custom resource.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>minVersion</code><br/>
+
+<em>
+
+string
+
+</em>
+
+</td>
+
+<td>
+
+<em>(Optional)</em>
+
+<p>minVersion defines the minimum acceptable TLS version.</p>
+
+</td>
+</tr>
+
+</tbody>
 </table>
 
 ## TempoComponentSpec { #tempo-grafana-com-v1alpha1-TempoComponentSpec }
@@ -3465,9 +4619,9 @@ See: <a href="https://github.com/golang/go/issues/6213">https://github.com/golan
 
 <em>
 
-<a href="#tempo-grafana-com-v1alpha1-ReceiversTLSSpec">
+<a href="#tempo-grafana-com-v1alpha1-TLSSpec">
 
-ReceiversTLSSpec
+TLSSpec
 
 </a>
 
@@ -3595,6 +4749,303 @@ IngressSpec
 
 </tbody>
 </table>
+
+## TempoMonolithic { #tempo-grafana-com-v1alpha1-TempoMonolithic }
+
+<div>
+
+<p>TempoMonolithic is the Schema for the tempomonolithics API.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>metadata</code><br/>
+
+<em>
+
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+
+Kubernetes meta/v1.ObjectMeta
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+Refer to the Kubernetes API documentation for the fields of the
+
+<code>metadata</code> field.
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>spec</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">
+
+TempoMonolithicSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>status</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-TempoMonolithicStatus">
+
+TempoMonolithicStatus
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## TempoMonolithicSpec { #tempo-grafana-com-v1alpha1-TempoMonolithicSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithic">TempoMonolithic</a>)
+
+</p>
+
+<div>
+
+<p>TempoMonolithicSpec defines the desired state of TempoMonolithic.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>storage</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicStorageSpec">
+
+MonolithicStorageSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Storage defines the backend storage configuration</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>ingestion</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicIngestionSpec">
+
+MonolithicIngestionSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Ingestion defines the trace ingestion configuration</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>jaegerui</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicJaegerUISpec">
+
+MonolithicJaegerUISpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>JaegerUI defines the Jaeger UI configuration</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>management</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-ManagementStateType">
+
+ManagementStateType
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>ManagementState defines whether this instance is managed by the operator or self-managed</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>observability</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilitySpec">
+
+MonolithicObservabilitySpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Observability defines observability configuration for the Tempo deployment</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>extraConfig</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-ExtraConfigSpec">
+
+ExtraConfigSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>ExtraConfig defines any extra (overlay) configuration for components</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## TempoMonolithicStatus { #tempo-grafana-com-v1alpha1-TempoMonolithicStatus }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithic">TempoMonolithic</a>)
+
+</p>
+
+<div>
+
+<p>TempoMonolithicStatus defines the observed state of TempoMonolithic.</p>
+
+</div>
 
 ## TempoQueryFrontendSpec { #tempo-grafana-com-v1alpha1-TempoQueryFrontendSpec }
 

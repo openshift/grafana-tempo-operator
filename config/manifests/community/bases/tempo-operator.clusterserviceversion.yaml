@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Deep Insights
     categories: Logging & Tracing,Monitoring
-    containerImage: ghcr.io/grafana/tempo-operator/tempo-operator
+    containerImage: ghcr.io/grafana/tempo-operator/tempo-operator:v0.7.0
     description: Create and manage deployments of Tempo, a high-scale distributed
       tracing backend.
     operatorframework.io/cluster-monitoring: "true"
@@ -18,6 +18,50 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: TempoMonolithic is the Schema for the tempomonolithics API.
+      displayName: Tempo Monolithic
+      kind: TempoMonolithic
+      name: tempomonolithics.tempo.grafana.com
+      specDescriptors:
+      - description: Tempo defines any extra Tempo configuration, which will be merged
+          with the operator's generated Tempo configuration
+        displayName: Tempo Extra Configurations
+        path: extraConfig.tempo
+      - description: caName is the name of a ConfigMap containing a CA certificate
+          (service-ca.crt). It needs to be in the same namespace as the Tempo custom
+          resource.
+        displayName: CA ConfigMap Name
+        path: ingestion.otlp.grpc.tls.caName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:ConfigMap
+      - description: certName is the name of a Secret containing a certificate (tls.crt)
+          and private key (tls.key). It needs to be in the same namespace as the Tempo
+          custom resource.
+        displayName: Certificate Secret Name
+        path: ingestion.otlp.grpc.tls.certName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: minVersion defines the minimum acceptable TLS version.
+        displayName: Min TLS Version
+        path: ingestion.otlp.grpc.tls.minVersion
+      - description: caName is the name of a ConfigMap containing a CA certificate
+          (service-ca.crt). It needs to be in the same namespace as the Tempo custom
+          resource.
+        displayName: CA ConfigMap Name
+        path: ingestion.otlp.http.tls.caName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:ConfigMap
+      - description: certName is the name of a Secret containing a certificate (tls.crt)
+          and private key (tls.key). It needs to be in the same namespace as the Tempo
+          custom resource.
+        displayName: Certificate Secret Name
+        path: ingestion.otlp.http.tls.certName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: minVersion defines the minimum acceptable TLS version.
+        displayName: Min TLS Version
+        path: ingestion.otlp.http.tls.minVersion
+      version: v1alpha1
     - description: TempoStack is the spec for Tempo deployments.
       displayName: TempoStack
       kind: TempoStack
@@ -50,7 +94,9 @@ spec:
       specDescriptors:
       - displayName: Extra Configurations
         path: extraConfig
-      - displayName: Tempo Extra Configurations
+      - description: Tempo defines any extra Tempo configuration, which will be merged
+          with the operator's generated Tempo configuration
+        displayName: Tempo Extra Configurations
         path: extraConfig.tempo
       - description: HashRing defines the spec for the distributed hash ring configuration.
         displayName: Hash Ring
@@ -339,22 +385,21 @@ spec:
       - description: TLS defines TLS configuration for distributor receivers
         displayName: TLS
         path: template.distributor.tls
-      - description: caName is the name of a ConfigMap containing a CA certificate.
-          It needs to be in the same namespace as the Tempo custom resource.
+      - description: caName is the name of a ConfigMap containing a CA certificate
+          (service-ca.crt). It needs to be in the same namespace as the Tempo custom
+          resource.
         displayName: CA ConfigMap Name
         path: template.distributor.tls.caName
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:ConfigMap
-      - description: certName is the name of a Secret containing a certificate and
-          the private key It needs to be in the same namespace as the Tempo custom
-          resource.
+      - description: certName is the name of a Secret containing a certificate (tls.crt)
+          and private key (tls.key). It needs to be in the same namespace as the Tempo
+          custom resource.
         displayName: Certificate Secret Name
         path: template.distributor.tls.certName
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Secret
-      - description: minVersion is the name of a Secret containing a certificate and
-          the private key It needs to be in the same namespace as the Tempo custom
-          resource.
+      - description: minVersion defines the minimum acceptable TLS version.
         displayName: Min TLS Version
         path: template.distributor.tls.minVersion
       - description: Tolerations defines component specific pod tolerations.

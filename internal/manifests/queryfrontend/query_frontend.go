@@ -2,6 +2,7 @@ package queryfrontend
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/imdario/mergo"
@@ -23,15 +24,8 @@ import (
 )
 
 const (
-	grpclbPortName        = "grpclb"
-	jaegerMetricsPortName = "jaeger-metrics"
-	jaegerGRPCQuery       = "jaeger-gprc"
-	jaegerUIPortName      = "jaeger-ui"
-	portGRPCLBServer      = 9096
-	portJaegerGRPCQuery   = 16685
-	portJaegerUI          = 16686
-	portJaegerMetrics     = 16687
-
+	grpclbPortName                   = "grpclb"
+	portGRPCLBServer                 = 9096
 	thanosQuerierOpenShiftMonitoring = "https://thanos-querier.openshift-monitoring.svc.cluster.local:9091"
 )
 
@@ -205,18 +199,18 @@ func deployment(params manifestutils.Params) (*appsv1.Deployment, error) {
 			},
 			Ports: []corev1.ContainerPort{
 				{
-					Name:          jaegerGRPCQuery,
-					ContainerPort: portJaegerGRPCQuery,
+					Name:          manifestutils.JaegerGRPCQuery,
+					ContainerPort: manifestutils.PortJaegerGRPCQuery,
 					Protocol:      corev1.ProtocolTCP,
 				},
 				{
-					Name:          jaegerUIPortName,
-					ContainerPort: portJaegerUI,
+					Name:          manifestutils.JaegerUIPortName,
+					ContainerPort: manifestutils.PortJaegerUI,
 					Protocol:      corev1.ProtocolTCP,
 				},
 				{
-					Name:          jaegerMetricsPortName,
-					ContainerPort: portJaegerMetrics,
+					Name:          manifestutils.JaegerMetricsPortName,
+					ContainerPort: manifestutils.PortJaegerMetrics,
 					Protocol:      corev1.ProtocolTCP,
 				},
 			},
@@ -251,18 +245,18 @@ func deployment(params manifestutils.Params) (*appsv1.Deployment, error) {
 		if params.CtrlConfig.Gates.HTTPEncryption && tempo.Spec.Template.Gateway.Enabled {
 			jaegerQueryContainer.Args = append(jaegerQueryContainer.Args,
 				"--query.http.tls.enabled=true",
-				fmt.Sprintf("--query.http.tls.key=%s/tls.key", manifestutils.TempoServerTLSDir()),
-				fmt.Sprintf("--query.http.tls.cert=%s/tls.crt", manifestutils.TempoServerTLSDir()),
-				fmt.Sprintf("--query.http.tls.client-ca=%s/service-ca.crt", manifestutils.CABundleDir),
+				fmt.Sprintf("--query.http.tls.key=%s", path.Join(manifestutils.TempoInternalTLSCertDir, manifestutils.TLSKeyFilename)),
+				fmt.Sprintf("--query.http.tls.cert=%s", path.Join(manifestutils.TempoInternalTLSCertDir, manifestutils.TLSCertFilename)),
+				fmt.Sprintf("--query.http.tls.client-ca=%s", path.Join(manifestutils.TempoInternalTLSCADir, manifestutils.TLSCAFilename)),
 			)
 		}
 
 		if params.CtrlConfig.Gates.GRPCEncryption && tempo.Spec.Template.Gateway.Enabled {
 			jaegerQueryContainer.Args = append(jaegerQueryContainer.Args,
 				"--query.grpc.tls.enabled=true",
-				fmt.Sprintf("--query.grpc.tls.key=%s/tls.key", manifestutils.TempoServerTLSDir()),
-				fmt.Sprintf("--query.grpc.tls.cert=%s/tls.crt", manifestutils.TempoServerTLSDir()),
-				fmt.Sprintf("--query.grpc.tls.client-ca=%s/service-ca.crt", manifestutils.CABundleDir),
+				fmt.Sprintf("--query.grpc.tls.key=%s", path.Join(manifestutils.TempoInternalTLSCertDir, manifestutils.TLSKeyFilename)),
+				fmt.Sprintf("--query.grpc.tls.cert=%s", path.Join(manifestutils.TempoInternalTLSCertDir, manifestutils.TLSCertFilename)),
+				fmt.Sprintf("--query.grpc.tls.client-ca=%s", path.Join(manifestutils.TempoInternalTLSCADir, manifestutils.TLSCAFilename)),
 			)
 		}
 
@@ -414,19 +408,19 @@ func services(tempo v1alpha1.TempoStack) []*corev1.Service {
 	if tempo.Spec.Template.QueryFrontend.JaegerQuery.Enabled {
 		jaegerPorts := []corev1.ServicePort{
 			{
-				Name:       jaegerGRPCQuery,
-				Port:       portJaegerGRPCQuery,
-				TargetPort: intstr.FromString(jaegerGRPCQuery),
+				Name:       manifestutils.JaegerGRPCQuery,
+				Port:       manifestutils.PortJaegerGRPCQuery,
+				TargetPort: intstr.FromString(manifestutils.JaegerGRPCQuery),
 			},
 			{
-				Name:       jaegerUIPortName,
-				Port:       portJaegerUI,
-				TargetPort: intstr.FromString(jaegerUIPortName),
+				Name:       manifestutils.JaegerUIPortName,
+				Port:       manifestutils.PortJaegerUI,
+				TargetPort: intstr.FromString(manifestutils.JaegerUIPortName),
 			},
 			{
-				Name:       jaegerMetricsPortName,
-				Port:       portJaegerMetrics,
-				TargetPort: intstr.FromString(jaegerMetricsPortName),
+				Name:       manifestutils.JaegerMetricsPortName,
+				Port:       manifestutils.PortJaegerMetrics,
+				TargetPort: intstr.FromString(manifestutils.JaegerMetricsPortName),
 			},
 		}
 
@@ -457,7 +451,7 @@ func ingress(tempo v1alpha1.TempoStack) *networkingv1.Ingress {
 		Service: &networkingv1.IngressServiceBackend{
 			Name: queryFrontendName,
 			Port: networkingv1.ServiceBackendPort{
-				Name: jaegerUIPortName,
+				Name: manifestutils.JaegerUIPortName,
 			},
 		},
 	}
@@ -519,7 +513,7 @@ func route(tempo v1alpha1.TempoStack) (*routev1.Route, error) {
 				Name: queryFrontendName,
 			},
 			Port: &routev1.RoutePort{
-				TargetPort: intstr.FromString(jaegerUIPortName),
+				TargetPort: intstr.FromString(manifestutils.JaegerUIPortName),
 			},
 			TLS: tlsCfg,
 		},
