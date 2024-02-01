@@ -17,11 +17,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	configv1alpha1 "github.com/grafana/tempo-operator/apis/config/v1alpha1"
-	tempov1alpha1 "github.com/grafana/tempo-operator/apis/tempo/v1alpha1"
 	"github.com/grafana/tempo-operator/cmd"
 	controllers "github.com/grafana/tempo-operator/controllers/tempo"
 	"github.com/grafana/tempo-operator/internal/upgrade"
 	"github.com/grafana/tempo-operator/internal/version"
+	"github.com/grafana/tempo-operator/internal/webhooks"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -67,10 +67,23 @@ func start(c *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.TempoMonolithicReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		CtrlConfig: ctrlConfig,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "TempoMonolithic")
+		os.Exit(1)
+	}
+
 	enableWebhooks := os.Getenv("ENABLE_WEBHOOKS") != "false"
 	if enableWebhooks {
-		if err = (&tempov1alpha1.TempoStack{}).SetupWebhookWithManager(mgr, ctrlConfig); err != nil {
+		if err = (&webhooks.TempoStackWebhook{}).SetupWebhookWithManager(mgr, ctrlConfig); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "TempoStack")
+			os.Exit(1)
+		}
+		if err = (&webhooks.TempoMonolithicWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "TempoMonolithic")
 			os.Exit(1)
 		}
 	}
@@ -130,7 +143,14 @@ func addDependencies(mgr ctrl.Manager, ctrlConfig configv1alpha1.ProjectConfig, 
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 		}
-		return reconciler.Reconcile(ctx, ctrlConfig)
+
+		// log error but do not fail operator startup if operator reconcile fails
+		// operator reconcile is only used for creating ServiceMonitor and PrometheusRules of the operator itself
+		err := reconciler.Reconcile(ctx, ctrlConfig)
+		if err != nil {
+			ctrl.LoggerFrom(ctx).WithName("operator-reconcile").Error(err, "cannot reconcile operator")
+		}
+		return nil
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to setup operator reconciler: %w", err)

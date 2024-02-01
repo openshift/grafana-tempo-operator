@@ -132,6 +132,8 @@ type TempoStackSpec struct {
 // ExtraConfigSpec defines extra configurations for tempo that will be merged with the operator generated, configurations defined here
 // has precedence and could override generated config.
 type ExtraConfigSpec struct {
+	// Tempo defines any extra Tempo configuration, which will be merged with the operator's generated Tempo configuration
+	//
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Tempo Extra Configurations"
 	Tempo apiextensionsv1.JSON `json:"tempo,omitempty"`
@@ -451,34 +453,6 @@ type HashRingSpec struct {
 	MemberList MemberListSpec `json:"memberlist,omitempty"`
 }
 
-// ReceiversTLSSpec is the TLS configuration for the receivers.
-type ReceiversTLSSpec struct {
-	Enabled bool `json:"enabled"`
-	// caName is the name of a ConfigMap containing a CA certificate.
-	// It needs to be in the same namespace as the Tempo custom resource.
-	//
-	// +required
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:ConfigMap",displayName="CA ConfigMap Name"
-	CA string `json:"caName,omitempty"`
-
-	// certName is the name of a Secret containing a certificate and the private key
-	// It needs to be in the same namespace as the Tempo custom resource.
-	//
-	// +required
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:io.kubernetes:Secret",displayName="Certificate Secret Name"
-	Cert string `json:"certName,omitempty"`
-
-	// minVersion is the name of a Secret containing a certificate and the private key
-	// It needs to be in the same namespace as the Tempo custom resource.
-	//
-	// +optional
-	// +kubebuilder:validation:optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Min TLS Version"
-	MinVersion string `json:"minVersion,omitempty"`
-}
-
 // TempoTemplateSpec defines the template of all requirements to configure
 // scheduling of all Tempo components to be deployed.
 type TempoTemplateSpec struct {
@@ -541,7 +515,7 @@ type TempoDistributorSpec struct {
 	//
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="TLS"
-	TLS ReceiversTLSSpec `json:"tls,omitempty"`
+	TLS TLSSpec `json:"tls,omitempty"`
 }
 
 // TempoComponentSpec defines specific schedule settings for tempo components.
