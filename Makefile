@@ -141,7 +141,7 @@ build: generate fmt ## Build manager binary.
 
 .PHONY: run
 run: manifests generate ## Run a controller from your host.
-	@echo -e "\033[33mRemoving webhooks from the cluster. Use the normal deployment method to enable full operator functionality.\033[0m"
+	@echo -e "\033[33mRemoving tempo operator from the cluster. Use the normal deployment method to enable full operator functionality.\033[0m"
 	-kubectl delete ns $(OPERATOR_NAMESPACE)
 	-kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io tempo-operator-mutating-webhook-configuration
 	-kubectl delete validatingwebhookconfigurations.admissionregistration.k8s.io tempo-operator-validating-webhook-configuration
@@ -351,16 +351,13 @@ deploy-minio:
 
 # generic end-to-tests
 .PHONY: prepare-e2e
-prepare-e2e: kuttl start-kind cert-manager deploy-minio set-test-image-vars build docker-build load-image-operator deploy
+prepare-e2e: kuttl start-kind cert-manager set-test-image-vars build docker-build load-image-operator deploy
 
 .PHONY: e2e
 e2e:
 	$(KUTTL) test
 
 # OpenShift end-to-tests
-.PHONY: prepare-e2e-openshift
-prepare-e2e-openshift: deploy-minio
-
 .PHONY: e2e-openshift
 e2e-openshift:
 	$(KUTTL) test --config kuttl-test-openshift.yaml

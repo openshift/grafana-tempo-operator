@@ -18,7 +18,12 @@ spec:
     singular: tempomonolithic
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: Storage
+      jsonPath: .spec.storage.traces.backend
+      name: Storage
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: TempoMonolithic is the Schema for the tempomonolithics API.
@@ -82,8 +87,6 @@ spec:
                                 description: minVersion defines the minimum acceptable
                                   TLS version.
                                 type: string
-                            required:
-                            - enabled
                             type: object
                         required:
                         - enabled
@@ -92,6 +95,7 @@ spec:
                         description: HTTP defines the OTLP/HTTP configuration
                         properties:
                           enabled:
+                            default: true
                             description: Enabled defines if OTLP over HTTP is enabled
                             type: boolean
                           tls:
@@ -116,8 +120,6 @@ spec:
                                 description: minVersion defines the minimum acceptable
                                   TLS version.
                                 type: string
-                            required:
-                            - enabled
                             type: object
                         required:
                         - enabled
@@ -155,6 +157,56 @@ spec:
                         type: string
                     required:
                     - enabled
+                    type: object
+                  resources:
+                    description: Resources defines the compute resource requirements
+                      of Jaeger UI.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
                     type: object
                   route:
                     description: Route defines the route configuration for Jaeger
@@ -196,34 +248,53 @@ spec:
                 - Managed
                 - Unmanaged
                 type: string
-              observability:
-                description: Observability defines observability configuration for
-                  the Tempo deployment
+              resources:
+                description: Resources defines the compute resource requirements of
+                  Tempo.
                 properties:
-                  metrics:
-                    description: Metrics defines the metrics configuration of the
-                      Tempo deployment
-                    properties:
-                      prometheusRules:
-                        description: ServiceMonitors defines the PrometheusRule configuration
-                        properties:
-                          enabled:
-                            description: Enabled defines if the operator should create
-                              PrometheusRules for this Tempo deployment
-                            type: boolean
-                        required:
-                        - enabled
-                        type: object
-                      serviceMonitors:
-                        description: ServiceMonitors defines the ServiceMonitor configuration
-                        properties:
-                          enabled:
-                            description: Enabled defines if the operator should create
-                              ServiceMonitors for this Tempo deployment
-                            type: boolean
-                        required:
-                        - enabled
-                        type: object
+                  claims:
+                    description: "Claims lists the names of resources, defined in
+                      spec.resourceClaims, that are used by this container. \n This
+                      is an alpha field and requires enabling the DynamicResourceAllocation
+                      feature gate. \n This field is immutable. It can only be set
+                      for containers."
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: Name must match the name of one entry in pod.spec.resourceClaims
+                            of the Pod where this field is used. It makes that resource
+                            available inside a container.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: 'Limits describes the maximum amount of compute resources
+                      allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: 'Requests describes the minimum amount of compute
+                      resources required. If Requests is omitted for a container,
+                      it defaults to Limits if that is explicitly specified, otherwise
+                      to an implementation-defined value. Requests cannot exceed Limits.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                 type: object
               storage:
@@ -233,6 +304,18 @@ spec:
                     description: Traces defines the backend storage configuration
                       for traces
                     properties:
+                      azure:
+                        description: Azure defines the Azure Storage configuration
+                        properties:
+                          secret:
+                            description: secret is the name of a Secret containing
+                              credentials for accessing object storage. It needs to
+                              be in the same namespace as the Tempo custom resource.
+                            minLength: 1
+                            type: string
+                        required:
+                        - secret
+                        type: object
                       backend:
                         default: memory
                         description: 'Backend defines the backend for storing traces.
@@ -240,37 +323,70 @@ spec:
                         enum:
                         - memory
                         - pv
+                        - azure
+                        - gcs
+                        - s3
                         type: string
-                      pv:
-                        description: PV defines the Persistent Volume configuration
+                      gcs:
+                        description: GCP defines the Google Cloud Storage configuration
                         properties:
-                          size:
-                            anyOf:
-                            - type: integer
-                            - type: string
-                            default: 10Gi
-                            description: Size defines the size of the Persistent Volume
-                              for storing the traces. Defaults to 10Gi.
-                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                            x-kubernetes-int-or-string: true
+                          secret:
+                            description: secret is the name of a Secret containing
+                              credentials for accessing object storage. It needs to
+                              be in the same namespace as the Tempo custom resource.
+                            minLength: 1
+                            type: string
                         required:
-                        - size
+                        - secret
                         type: object
-                      wal:
-                        description: WAL defines the write-ahead logging (WAL) configuration
+                      s3:
+                        description: S3 defines the AWS S3 configuration
                         properties:
-                          size:
-                            anyOf:
-                            - type: integer
-                            - type: string
-                            default: 10Gi
-                            description: Size defines the size of the Persistent Volume
-                              for storing the WAL. Defaults to 10Gi.
-                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                            x-kubernetes-int-or-string: true
+                          secret:
+                            description: secret is the name of a Secret containing
+                              credentials for accessing object storage. It needs to
+                              be in the same namespace as the Tempo custom resource.
+                            minLength: 1
+                            type: string
+                          tls:
+                            description: tls defines the TLS configuration for AWS
+                              S3.
+                            properties:
+                              caName:
+                                description: caName is the name of a ConfigMap containing
+                                  a CA certificate (service-ca.crt). It needs to be
+                                  in the same namespace as the Tempo custom resource.
+                                type: string
+                              certName:
+                                description: certName is the name of a Secret containing
+                                  a certificate (tls.crt) and private key (tls.key).
+                                  It needs to be in the same namespace as the Tempo
+                                  custom resource.
+                                type: string
+                              enabled:
+                                description: enabled defines if TLS is enabled.
+                                type: boolean
+                              minVersion:
+                                description: minVersion defines the minimum acceptable
+                                  TLS version.
+                                type: string
+                            type: object
                         required:
-                        - size
+                        - secret
                         type: object
+                      size:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        default: 10Gi
+                        description: Size defines the size of the volume where traces
+                          are stored. For in-memory storage, this defines the size
+                          of the tmpfs volume. For persistent volume storage, this
+                          defines the size of the persistent volume. For object storage,
+                          this defines the size of the persistent volume containing
+                          the Write-Ahead Log (WAL) of Tempo. Defaults to 10Gi.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                     required:
                     - backend
                     type: object
