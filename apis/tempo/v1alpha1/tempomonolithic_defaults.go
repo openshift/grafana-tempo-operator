@@ -1,6 +1,9 @@
 package v1alpha1
 
-import "k8s.io/apimachinery/pkg/api/resource"
+import (
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/ptr"
+)
 
 var (
 	tenGBQuantity = resource.MustParse("10Gi")
@@ -10,6 +13,10 @@ var (
 // NOTE: This function is called inside the Reconcile loop, NOT in the webhook.
 // We want to keep the CR as minimal as the user configures it, and not modify it in any way (except for upgrades).
 func (r *TempoMonolithic) Default() {
+	if r.Spec.Management == "" {
+		r.Spec.Management = ManagementStateManaged
+	}
+
 	if r.Spec.Storage == nil {
 		r.Spec.Storage = &MonolithicStorageSpec{}
 	}
@@ -18,16 +25,8 @@ func (r *TempoMonolithic) Default() {
 		r.Spec.Storage.Traces.Backend = MonolithicTracesStorageBackendMemory
 	}
 
-	if r.Spec.Storage.Traces.Backend != MonolithicTracesStorageBackendMemory && r.Spec.Storage.Traces.WAL == nil {
-		r.Spec.Storage.Traces.WAL = &MonolithicTracesStorageWALSpec{
-			Size: tenGBQuantity,
-		}
-	}
-
-	if r.Spec.Storage.Traces.Backend == MonolithicTracesStorageBackendPV && r.Spec.Storage.Traces.PV == nil {
-		r.Spec.Storage.Traces.PV = &MonolithicTracesStoragePVSpec{
-			Size: tenGBQuantity,
-		}
+	if r.Spec.Storage.Traces.Size == nil {
+		r.Spec.Storage.Traces.Size = ptr.To(tenGBQuantity)
 	}
 
 	if r.Spec.Ingestion == nil {

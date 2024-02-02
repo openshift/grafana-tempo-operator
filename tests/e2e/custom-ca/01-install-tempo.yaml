@@ -44,6 +44,7 @@ spec:
       name: minio
       type: s3
     tls:
+      enabled: true
       caName: custom-ca
   storageSize: 200M
   template:

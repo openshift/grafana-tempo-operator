@@ -7,6 +7,7 @@ import (
 	"github.com/operator-framework/operator-lib/proxy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -15,9 +16,8 @@ import (
 	"github.com/grafana/tempo-operator/internal/manifests/naming"
 )
 
-const (
-	walVolumeName    = "tempo-wal"
-	blocksVolumeName = "tempo-blocks"
+var (
+	tenGBQuantity = resource.MustParse("10Gi")
 )
 
 // BuildTempoStatefulset creates the Tempo statefulset for a monolithic deployment.
@@ -26,7 +26,7 @@ func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
 	labels := Labels(tempo.Name)
 	annotations := manifestutils.CommonAnnotations(opts.ConfigChecksum)
 
-	ss := &appsv1.StatefulSet{
+	sts := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
 			Kind:       "StatefulSet",
@@ -65,27 +65,17 @@ func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
 								"-mem-ballast-size-mbs=1024",
 								"-log.level=info",
 							},
-
-							// The Tempo Helm chart mounts /var/tempo if persistence is enabled.
-							// Tempo writes its WAL to /var/tempo/wal, and if the local storage backend is enabled, parquet blocks to /var/tempo/blocks.
-							//
-							// Let's mount /var/tempo as WAL, in case Tempo writes caches to additional locations in /var/tempo in the future.
-							// If memory or pv storage is enabled, /var/tempo/blocks will be mounted in a different volume (configured in configureStorage()).
-							// This is to avoid confusion why a PV is required when selecting object storage.
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      manifestutils.ConfigVolumeName,
 									MountPath: "/conf",
 									ReadOnly:  true,
 								},
-								{
-									Name:      walVolumeName,
-									MountPath: "/var/tempo",
-								},
 							},
 							Ports:           buildTempoPorts(opts),
 							ReadinessProbe:  manifestutils.TempoReadinessProbe(false),
 							SecurityContext: manifestutils.TempoContainerSecurityContext(),
+							Resources:       ptr.Deref(tempo.Spec.Resources, corev1.ResourceRequirements{}),
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -105,27 +95,33 @@ func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
 		},
 	}
 
-	err := configureStorage(opts, ss)
+	err := configureStorage(opts, sts)
 	if err != nil {
 		return nil, err
 	}
 
 	if tempo.Spec.JaegerUI != nil && tempo.Spec.JaegerUI.Enabled {
-		configureJaegerUI(opts, ss)
+		configureJaegerUI(opts, sts)
 	}
 
 	if tempo.Spec.Ingestion != nil && tempo.Spec.Ingestion.OTLP != nil {
 		if tempo.Spec.Ingestion.OTLP.GRPC != nil && tempo.Spec.Ingestion.OTLP.GRPC.Enabled &&
 			tempo.Spec.Ingestion.OTLP.GRPC.TLS != nil && tempo.Spec.Ingestion.OTLP.GRPC.TLS.Enabled {
-			configureReceiverTLSVolumes("receiver-tls-grpc", *tempo.Spec.Ingestion.OTLP.GRPC.TLS, ss)
+			manifestutils.ConfigureTLSVolumes(
+				&sts.Spec.Template.Spec, 0, *tempo.Spec.Ingestion.OTLP.GRPC.TLS,
+				manifestutils.ReceiverTLSCADir, manifestutils.ReceiverTLSCertDir, "receiver-tls-grpc",
+			)
 		}
 		if tempo.Spec.Ingestion.OTLP.HTTP != nil && tempo.Spec.Ingestion.OTLP.HTTP.Enabled &&
 			tempo.Spec.Ingestion.OTLP.HTTP.TLS != nil && tempo.Spec.Ingestion.OTLP.HTTP.TLS.Enabled {
-			configureReceiverTLSVolumes("receiver-tls-http", *tempo.Spec.Ingestion.OTLP.HTTP.TLS, ss)
+			manifestutils.ConfigureTLSVolumes(
+				&sts.Spec.Template.Spec, 0, *tempo.Spec.Ingestion.OTLP.HTTP.TLS,
+				manifestutils.ReceiverTLSCADir, manifestutils.ReceiverTLSCertDir, "receiver-tls-http",
+			)
 		}
 	}
 
-	return ss, nil
+	return sts, nil
 }
 
 func buildTempoPorts(opts Options) []corev1.ContainerPort {
@@ -160,70 +156,78 @@ func buildTempoPorts(opts Options) []corev1.ContainerPort {
 
 func configureStorage(opts Options, sts *appsv1.StatefulSet) error {
 	tempo := opts.Tempo
+	const volumeName = "tempo-storage"
+
+	sts.Spec.Template.Spec.Containers[0].VolumeMounts = append(sts.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+		Name:      volumeName,
+		MountPath: "/var/tempo",
+	})
+
+	// configure /var/tempo:
+	// * memory:         mount /var/tempo on a tmpfs
+	// * pv:     		 mount /var/tempo on a Persistent Volume
+	// * object storage: also mount /var/tempo on a Persistent Volume, for the WAL
+	if tempo.Spec.Storage.Traces.Backend == v1alpha1.MonolithicTracesStorageBackendMemory {
+		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: volumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium:    corev1.StorageMediumMemory,
+					SizeLimit: tempo.Spec.Storage.Traces.Size,
+				},
+			},
+		})
+	} else {
+		// object storage also needs a PVC to store the WAL
+		sts.Spec.VolumeClaimTemplates = append(sts.Spec.VolumeClaimTemplates, corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: volumeName,
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: ptr.Deref(tempo.Spec.Storage.Traces.Size, tenGBQuantity),
+					},
+				},
+				VolumeMode: ptr.To(corev1.PersistentVolumeFilesystem),
+			},
+		})
+	}
+
 	switch tempo.Spec.Storage.Traces.Backend {
-	case v1alpha1.MonolithicTracesStorageBackendMemory:
-		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: walVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{
-					Medium: corev1.StorageMediumMemory,
-				},
-			},
-		})
+	case v1alpha1.MonolithicTracesStorageBackendMemory, v1alpha1.MonolithicTracesStorageBackendPV:
+		// for memory and PV storage, /var/tempo is configured above.
 
-		sts.Spec.Template.Spec.Containers[0].VolumeMounts = append(sts.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      blocksVolumeName,
-			MountPath: "/var/tempo/blocks",
-		})
-		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: blocksVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{
-					Medium: corev1.StorageMediumMemory,
-				},
-			},
-		})
-
-	case v1alpha1.MonolithicTracesStorageBackendPV:
-		if tempo.Spec.Storage.Traces.WAL == nil {
-			return errors.New("please configure .spec.storage.traces.wal")
+	case v1alpha1.MonolithicTracesStorageBackendS3:
+		if tempo.Spec.Storage.Traces.S3 == nil {
+			return errors.New("please configure .spec.storage.traces.s3")
 		}
-		sts.Spec.VolumeClaimTemplates = append(sts.Spec.VolumeClaimTemplates, corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: walVolumeName,
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: tempo.Spec.Storage.Traces.WAL.Size,
-					},
-				},
-				VolumeMode: ptr.To(corev1.PersistentVolumeFilesystem),
-			},
-		})
 
-		if tempo.Spec.Storage.Traces.PV == nil {
-			return errors.New("please configure .spec.storage.traces.pv")
+		err := manifestutils.ConfigureS3Storage(&sts.Spec.Template.Spec, 0, tempo.Spec.Storage.Traces.S3.Secret, tempo.Spec.Storage.Traces.S3.TLS)
+		if err != nil {
+			return err
 		}
-		sts.Spec.Template.Spec.Containers[0].VolumeMounts = append(sts.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      blocksVolumeName,
-			MountPath: "/var/tempo/blocks",
-		})
-		sts.Spec.VolumeClaimTemplates = append(sts.Spec.VolumeClaimTemplates, corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: blocksVolumeName,
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: tempo.Spec.Storage.Traces.PV.Size,
-					},
-				},
-				VolumeMode: ptr.To(corev1.PersistentVolumeFilesystem),
-			},
-		})
+
+	case v1alpha1.MonolithicTracesStorageBackendAzure:
+		if tempo.Spec.Storage.Traces.Azure == nil {
+			return errors.New("please configure .spec.storage.traces.azure")
+		}
+
+		err := manifestutils.ConfigureAzureStorage(&sts.Spec.Template.Spec, 0, tempo.Spec.Storage.Traces.Azure.Secret, nil)
+		if err != nil {
+			return err
+		}
+
+	case v1alpha1.MonolithicTracesStorageBackendGCS:
+		if tempo.Spec.Storage.Traces.GCS == nil {
+			return errors.New("please configure .spec.storage.traces.gcs")
+		}
+
+		err := manifestutils.ConfigureGCS(&sts.Spec.Template.Spec, 0, tempo.Spec.Storage.Traces.GCS.Secret, nil)
+		if err != nil {
+			return err
+		}
 
 	default:
 		return fmt.Errorf("invalid storage backend: '%s'", tempo.Spec.Storage.Traces.Backend)
@@ -265,45 +269,8 @@ func configureJaegerUI(opts Options, sts *appsv1.StatefulSet) {
 				ReadOnly:  true,
 			},
 		},
+		Resources: ptr.Deref(opts.Tempo.Spec.JaegerUI.Resources, corev1.ResourceRequirements{}),
 	}
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, tempoQuery)
-}
-
-func configureReceiverTLSVolumes(volumeNamePrefix string, tlsSpec v1alpha1.TLSSpec, sts *appsv1.StatefulSet) {
-	if tlsSpec.Cert != "" {
-		volumeName := fmt.Sprintf("%s-cert", volumeNamePrefix)
-		sts.Spec.Template.Spec.Containers[0].VolumeMounts = append(sts.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      volumeName,
-			MountPath: manifestutils.ReceiverTLSCertDir,
-			ReadOnly:  true,
-		})
-		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: volumeName,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: tlsSpec.Cert,
-				},
-			},
-		})
-	}
-
-	if tlsSpec.CA != "" {
-		volumeName := fmt.Sprintf("%s-ca", volumeNamePrefix)
-		sts.Spec.Template.Spec.Containers[0].VolumeMounts = append(sts.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      volumeName,
-			MountPath: manifestutils.ReceiverTLSCADir,
-			ReadOnly:  true,
-		})
-		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: volumeName,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: tlsSpec.CA,
-					},
-				},
-			},
-		})
-	}
 }

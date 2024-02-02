@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,10 +28,10 @@ type TempoMonolithicSpec struct {
 	// +kubebuilder:validation:Optional
 	Management ManagementStateType `json:"management,omitempty"`
 
-	// Observability defines observability configuration for the Tempo deployment
+	// Resources defines the compute resource requirements of Tempo.
 	//
 	// +kubebuilder:validation:Optional
-	Observability *MonolithicObservabilitySpec `json:"observability,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// ExtraConfig defines any extra (overlay) configuration for components
 	//
@@ -54,20 +55,35 @@ type MonolithicTracesStorageSpec struct {
 	// +kubebuilder:default=memory
 	Backend MonolithicTracesStorageBackend `json:"backend"`
 
-	// WAL defines the write-ahead logging (WAL) configuration
+	// Size defines the size of the volume where traces are stored.
+	// For in-memory storage, this defines the size of the tmpfs volume.
+	// For persistent volume storage, this defines the size of the persistent volume.
+	// For object storage, this defines the size of the persistent volume containing the Write-Ahead Log (WAL) of Tempo.
+	// Defaults to 10Gi.
 	//
 	// +kubebuilder:validation:Optional
-	WAL *MonolithicTracesStorageWALSpec `json:"wal,omitempty"`
+	// +kubebuilder:default="10Gi"
+	Size *resource.Quantity `json:"size,omitempty"`
 
-	// PV defines the Persistent Volume configuration
+	// S3 defines the AWS S3 configuration
 	//
 	// +kubebuilder:validation:Optional
-	PV *MonolithicTracesStoragePVSpec `json:"pv,omitempty"`
+	S3 *MonolithicTracesStorageS3Spec `json:"s3,omitempty"`
+
+	// Azure defines the Azure Storage configuration
+	//
+	// +kubebuilder:validation:Optional
+	Azure *MonolithicTracesObjectStorageSpec `json:"azure,omitempty"`
+
+	// GCP defines the Google Cloud Storage configuration
+	//
+	// +kubebuilder:validation:Optional
+	GCS *MonolithicTracesObjectStorageSpec `json:"gcs,omitempty"`
 }
 
 // MonolithicTracesStorageBackend defines the backend storage for traces.
 //
-// +kubebuilder:validation:Enum=memory;pv
+// +kubebuilder:validation:Enum=memory;pv;azure;gcs;s3
 type MonolithicTracesStorageBackend string
 
 const (
@@ -75,6 +91,12 @@ const (
 	MonolithicTracesStorageBackendMemory MonolithicTracesStorageBackend = "memory"
 	// MonolithicTracesStorageBackendPV defines storing traces in a Persistent Volume.
 	MonolithicTracesStorageBackendPV MonolithicTracesStorageBackend = "pv"
+	// MonolithicTracesStorageBackendAzure defines storing traces in Azure Storage.
+	MonolithicTracesStorageBackendAzure MonolithicTracesStorageBackend = "azure"
+	// MonolithicTracesStorageBackendGCS defines storing traces in Google Cloud Storage.
+	MonolithicTracesStorageBackendGCS MonolithicTracesStorageBackend = "gcs"
+	// MonolithicTracesStorageBackendS3 defines storing traces in AWS S3.
+	MonolithicTracesStorageBackendS3 MonolithicTracesStorageBackend = "s3"
 )
 
 // MonolithicTracesStorageWALSpec defines the write-ahead logging (WAL) configuration.
@@ -93,6 +115,26 @@ type MonolithicTracesStoragePVSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default="10Gi"
 	Size resource.Quantity `json:"size"`
+}
+
+// MonolithicTracesObjectStorageSpec defines object storage configuration.
+type MonolithicTracesObjectStorageSpec struct {
+	// secret is the name of a Secret containing credentials for accessing object storage.
+	// It needs to be in the same namespace as the Tempo custom resource.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Secret string `json:"secret"`
+}
+
+// MonolithicTracesStorageS3Spec defines the AWS S3 configuration.
+type MonolithicTracesStorageS3Spec struct {
+	MonolithicTracesObjectStorageSpec `json:",inline"`
+
+	// tls defines the TLS configuration for AWS S3.
+	//
+	// +kubebuilder:validation:Optional
+	TLS *TLSSpec `json:"tls,omitempty"`
 }
 
 // MonolithicIngestionSpec defines the ingestion settings.
@@ -135,6 +177,7 @@ type MonolithicIngestionOTLPProtocolsHTTPSpec struct {
 	// Enabled defines if OTLP over HTTP is enabled
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default=true
 	Enabled bool `json:"enabled"`
 
 	// TLS defines the TLS configuration for OTLP/HTTP ingestion
@@ -159,6 +202,11 @@ type MonolithicJaegerUISpec struct {
 	//
 	// +kubebuilder:validation:Optional
 	Route *MonolithicJaegerUIRouteSpec `json:"route,omitempty"`
+
+	// Resources defines the compute resource requirements of Jaeger UI.
+	//
+	// +kubebuilder:validation:Optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // MonolithicJaegerUIIngressSpec defines the settings for the Jaeger UI ingress.
@@ -210,43 +258,6 @@ type MonolithicJaegerUIRouteSpec struct {
 	Termination TLSRouteTerminationType `json:"termination,omitempty"`
 }
 
-// MonolithicObservabilitySpec defines the observability settings of the Tempo deployment.
-type MonolithicObservabilitySpec struct {
-	// Metrics defines the metrics configuration of the Tempo deployment
-	//
-	// +kubebuilder:validation:Optional
-	Metrics *MonolithicObservabilityMetricsSpec `json:"metrics,omitempty"`
-}
-
-// MonolithicObservabilityMetricsSpec defines the metrics settings of the Tempo deployment.
-type MonolithicObservabilityMetricsSpec struct {
-	// ServiceMonitors defines the ServiceMonitor configuration
-	//
-	// +kubebuilder:validation:Optional
-	ServiceMonitors *MonolithicObservabilityMetricsServiceMonitorsSpec `json:"serviceMonitors,omitempty"`
-
-	// ServiceMonitors defines the PrometheusRule configuration
-	//
-	// +kubebuilder:validation:Optional
-	PrometheusRules *MonolithicObservabilityMetricsPrometheusRulesSpec `json:"prometheusRules,omitempty"`
-}
-
-// MonolithicObservabilityMetricsServiceMonitorsSpec defines the ServiceMonitor settings.
-type MonolithicObservabilityMetricsServiceMonitorsSpec struct {
-	// Enabled defines if the operator should create ServiceMonitors for this Tempo deployment
-	//
-	// +kubebuilder:validation:Required
-	Enabled bool `json:"enabled"`
-}
-
-// MonolithicObservabilityMetricsPrometheusRulesSpec defines the PrometheusRules settings.
-type MonolithicObservabilityMetricsPrometheusRulesSpec struct {
-	// Enabled defines if the operator should create PrometheusRules for this Tempo deployment
-	//
-	// +kubebuilder:validation:Required
-	Enabled bool `json:"enabled"`
-}
-
 // TempoMonolithicStatus defines the observed state of TempoMonolithic.
 type TempoMonolithicStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -255,6 +266,7 @@ type TempoMonolithicStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Storage",type="string",JSONPath=".spec.storage.traces.backend",description="Storage"
 
 // TempoMonolithic is the Schema for the tempomonolithics API.
 type TempoMonolithic struct {

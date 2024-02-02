@@ -33,17 +33,21 @@ type AzureStorage struct {
 
 // GCS for Google Cloud Storage.
 type GCS struct {
-	Bucket  string
-	KeyJson string
+	Bucket string
 }
 
 // S3 holds S3 configuration.
 type S3 struct {
 	// Endpoint without http/https
-	Endpoint  string
-	Bucket    string
-	Insecure  bool
-	TLSCAPath string
+	Endpoint string
+	Bucket   string
+	Insecure bool
+	TLS      StorageTLS
+}
+
+// StorageTLS holds StorageTLS configuration.
+type StorageTLS struct {
+	CAFilename string // for backwards compatibility (can be service-ca.crt or ca.crt)
 }
 
 // GatewayTenantOIDCSecret holds clientID, clientSecret and issuerCAPath for tenant's authentication.
