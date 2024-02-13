@@ -74,7 +74,7 @@ metadata:
     capabilities: Deep Insights
     categories: Logging & Tracing,Monitoring
     containerImage: ghcr.io/grafana/tempo-operator/tempo-operator:v0.8.0
-    createdAt: "2024-02-02T17:31:33Z"
+    createdAt: "2024-02-12T19:30:27Z"
     description: Create and manage deployments of Tempo, a high-scale distributed
       tracing backend.
     operatorframework.io/cluster-monitoring: "true"
@@ -243,6 +243,47 @@ spec:
           the operator or self-managed. Default: Managed.'
         displayName: Management State
         path: management
+      - description: Observability defines the observability configuration of the
+          Tempo deployment.
+        displayName: Observability
+        path: observability
+      - description: Grafana defines the Grafana configuration of the Tempo deployment.
+        displayName: Grafana
+        path: observability.grafana
+      - description: DataSource defines the Grafana data source configuration.
+        displayName: Grafana data source
+        path: observability.grafana.dataSource
+      - description: Enabled defines if a Grafana data source should be created for
+          this Tempo deployment.
+        displayName: Enabled
+        path: observability.grafana.dataSource.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: InstanceSelector defines the Grafana instance where the data
+          source should be created.
+        displayName: Grafana Instance Selector
+        path: observability.grafana.dataSource.instanceSelector
+      - description: Metrics defines the metric configuration of the Tempo deployment.
+        displayName: Metrics
+        path: observability.metrics
+      - description: ServiceMonitors defines the PrometheusRule configuration.
+        displayName: Prometheus Rules
+        path: observability.metrics.prometheusRules
+      - description: Enabled defines if PrometheusRule objects should be created for
+          this Tempo deployment.
+        displayName: Enabled
+        path: observability.metrics.prometheusRules.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: ServiceMonitors defines the ServiceMonitor configuration.
+        displayName: Service Monitors
+        path: observability.metrics.serviceMonitors
+      - description: Enabled defines if ServiceMonitor objects should be created for
+          this Tempo deployment.
+        displayName: Enabled
+        path: observability.metrics.serviceMonitors.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: Resources defines the compute resource requirements of the Tempo
           container.
         displayName: Resources
@@ -321,6 +362,17 @@ spec:
         path: storage.traces.size
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
+      statusDescriptors:
+      - description: Tempo is a map of the pod status of the Tempo pods.
+        displayName: Tempo
+        path: components.tempo
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
+      - description: Conditions of the Tempo deployment health.
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
     - description: TempoStack manages a Tempo deployment in microservices mode.
       displayName: TempoStack
@@ -641,6 +693,10 @@ spec:
           component.
         displayName: Component Replicas
         path: template.compactor.replicas
+      - description: Resources defines resources for this component, this will override
+          the calculated resources derived from total
+        displayName: Resources
+        path: template.compactor.resources
       - description: Tolerations defines component-specific pod tolerations.
         displayName: Tolerations
         path: template.compactor.tolerations
@@ -654,6 +710,10 @@ spec:
           component.
         displayName: Component Replicas
         path: template.distributor.replicas
+      - description: Resources defines resources for this component, this will override
+          the calculated resources derived from total
+        displayName: Resources
+        path: template.distributor.resources
       - description: TLS defines TLS configuration for distributor receivers
         displayName: TLS
         path: template.distributor.tls
@@ -714,6 +774,10 @@ spec:
           component.
         displayName: Component Replicas
         path: template.gateway.replicas
+      - description: Resources defines resources for this component, this will override
+          the calculated resources derived from total
+        displayName: Resources
+        path: template.gateway.resources
       - description: Tolerations defines component-specific pod tolerations.
         displayName: Tolerations
         path: template.gateway.tolerations
@@ -727,6 +791,10 @@ spec:
           component.
         displayName: Component Replicas
         path: template.ingester.replicas
+      - description: Resources defines resources for this component, this will override
+          the calculated resources derived from total
+        displayName: Resources
+        path: template.ingester.resources
       - description: Tolerations defines component-specific pod tolerations.
         displayName: Tolerations
         path: template.ingester.tolerations
@@ -740,6 +808,10 @@ spec:
           component.
         displayName: Component Replicas
         path: template.querier.replicas
+      - description: Resources defines resources for this component, this will override
+          the calculated resources derived from total
+        displayName: Resources
+        path: template.querier.resources
       - description: Tolerations defines component-specific pod tolerations.
         displayName: Tolerations
         path: template.querier.tolerations
@@ -794,6 +866,10 @@ spec:
           component.
         displayName: Component Replicas
         path: template.queryFrontend.replicas
+      - description: Resources defines resources for this component, this will override
+          the calculated resources derived from total
+        displayName: Resources
+        path: template.queryFrontend.resources
       - description: Tolerations defines component-specific pod tolerations.
         displayName: Tolerations
         path: template.queryFrontend.tolerations
@@ -864,12 +940,6 @@ spec:
         path: components.querier
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podStatuses
-      - description: Gateway is a map to the per pod status of the query frontend
-          deployment
-        displayName: Query Frontend
-        path: components.gateway
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       - description: QueryFrontend is a map to the per pod status of the query frontend
           deployment
         displayName: Query Frontend
@@ -879,6 +949,12 @@ spec:
       - description: Compactor is a map to the pod status of the compactor pod.
         displayName: Compactor
         path: components.compactor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
+      - description: Gateway is a map to the per pod status of the query frontend
+          deployment
+        displayName: Gateway
+        path: components.gateway
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podStatuses
       - description: Conditions of the Tempo deployment health.

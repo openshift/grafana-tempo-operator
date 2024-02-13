@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	grafanav1 "github.com/grafana/grafana-operator/v5/api/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -64,7 +65,8 @@ type TempoStackReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *TempoStackReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("tempostack-reconcile").WithValues("tempo", req.NamespacedName)
+	log := ctrl.LoggerFrom(ctx).WithName("tempostack-reconcile")
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	log.V(1).Info("starting reconcile loop")
 	defer log.V(1).Info("finished reconcile loop")
@@ -205,13 +207,17 @@ func (r *TempoStackReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		)
 
+	if r.CtrlConfig.Gates.OpenShift.OpenShiftRoute {
+		builder = builder.Owns(&routev1.Route{})
+	}
+
 	if r.CtrlConfig.Gates.PrometheusOperator {
 		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
 		builder = builder.Owns(&monitoringv1.PrometheusRule{})
 	}
 
-	if r.CtrlConfig.Gates.OpenShift.OpenShiftRoute {
-		builder = builder.Owns(&routev1.Route{})
+	if r.CtrlConfig.Gates.GrafanaOperator {
+		builder = builder.Owns(&grafanav1.GrafanaDatasource{})
 	}
 
 	return builder.Complete(r)

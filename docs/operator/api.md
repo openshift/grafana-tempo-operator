@@ -1560,6 +1560,66 @@ using an in-process OpenPolicyAgent Rego authorizer.</p>
 </tr></tbody>
 </table>
 
+## MonolithicComponentStatus { #tempo-grafana-com-v1alpha1-MonolithicComponentStatus }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicStatus">TempoMonolithicStatus</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicComponentStatus defines the status of each component.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>tempo</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-PodStatusMap">
+
+PodStatusMap
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<em>(Optional)</em>
+
+<p>Tempo is a map of the pod status of the Tempo pods.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
 ## MonolithicIngestionOTLPProtocolsGRPCSpec { #tempo-grafana-com-v1alpha1-MonolithicIngestionOTLPProtocolsGRPCSpec }
 
 <p>
@@ -2223,6 +2283,417 @@ Kubernetes core/v1.ResourceRequirements
 <td>
 
 <p>Resources defines the compute resource requirements of the Jaeger UI container.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityGrafanaDataSourceSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityGrafanaDataSourceSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityGrafanaSpec">MonolithicObservabilityGrafanaSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityGrafanaDataSourceSpec defines the Grafana data source configuration of the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if a Grafana data source should be created for this Tempo deployment.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>instanceSelector</code><br/>
+
+<em>
+
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+
+Kubernetes meta/v1.LabelSelector
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>InstanceSelector defines the Grafana instance where the data source should be created.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityGrafanaSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityGrafanaSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilitySpec">MonolithicObservabilitySpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityGrafanaSpec defines the Grafana configuration of the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>dataSource</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityGrafanaDataSourceSpec">
+
+MonolithicObservabilityGrafanaDataSourceSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>DataSource defines the Grafana data source configuration.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityMetricsPrometheusRulesSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsPrometheusRulesSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec">MonolithicObservabilityMetricsSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityMetricsPrometheusRulesSpec defines the PrometheusRules settings.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if PrometheusRule objects should be created for this Tempo deployment.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityMetricsServiceMonitorsSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsServiceMonitorsSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec">MonolithicObservabilityMetricsSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityMetricsServiceMonitorsSpec defines the ServiceMonitor settings.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>enabled</code><br/>
+
+<em>
+
+bool
+
+</em>
+
+</td>
+
+<td>
+
+<p>Enabled defines if ServiceMonitor objects should be created for this Tempo deployment.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilityMetricsSpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilitySpec">MonolithicObservabilitySpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilityMetricsSpec defines the metrics settings of the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>serviceMonitors</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsServiceMonitorsSpec">
+
+MonolithicObservabilityMetricsServiceMonitorsSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>ServiceMonitors defines the ServiceMonitor configuration.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>prometheusRules</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsPrometheusRulesSpec">
+
+MonolithicObservabilityMetricsPrometheusRulesSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>ServiceMonitors defines the PrometheusRule configuration.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
+## MonolithicObservabilitySpec { #tempo-grafana-com-v1alpha1-MonolithicObservabilitySpec }
+
+<p>
+
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-TempoMonolithicSpec">TempoMonolithicSpec</a>)
+
+</p>
+
+<div>
+
+<p>MonolithicObservabilitySpec defines the observability configuration of the Tempo deployment.</p>
+
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>metrics</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityMetricsSpec">
+
+MonolithicObservabilityMetricsSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Metrics defines the metric configuration of the Tempo deployment.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>grafana</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilityGrafanaSpec">
+
+MonolithicObservabilityGrafanaSpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Grafana defines the Grafana configuration of the Tempo deployment.</p>
 
 </td>
 </tr>
@@ -3169,7 +3640,7 @@ GrafanaConfigSpec
 
 <p>
 
-(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-ComponentStatus">ComponentStatus</a>)
+(<em>Appears on:</em><a href="#tempo-grafana-com-v1alpha1-ComponentStatus">ComponentStatus</a>, <a href="#tempo-grafana-com-v1alpha1-MonolithicComponentStatus">MonolithicComponentStatus</a>)
 
 </p>
 
@@ -4359,6 +4830,33 @@ map[string]string
 </td>
 </tr>
 
+<tr>
+
+<td>
+
+<code>resources</code><br/>
+
+<em>
+
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#resourcerequirements-v1-core">
+
+Kubernetes core/v1.ResourceRequirements
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<em>(Optional)</em>
+
+<p>Resources defines resources for this component, this will override the calculated resources derived from total</p>
+
+</td>
+</tr>
+
 </tbody>
 </table>
 
@@ -4771,6 +5269,31 @@ MonolithicJaegerUISpec
 
 <td>
 
+<code>observability</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicObservabilitySpec">
+
+MonolithicObservabilitySpec
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Observability defines the observability configuration of the Tempo deployment.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
 <code>management</code><br/>
 
 <em>
@@ -4859,6 +5382,75 @@ ExtraConfigSpec
 <p>TempoMonolithicStatus defines the observed state of TempoMonolithic.</p>
 
 </div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Field</th>
+
+<th>Description</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<code>components</code><br/>
+
+<em>
+
+<a href="#tempo-grafana-com-v1alpha1-MonolithicComponentStatus">
+
+MonolithicComponentStatus
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Components provides summary of all Tempo pod status, grouped per component.</p>
+
+</td>
+</tr>
+
+<tr>
+
+<td>
+
+<code>conditions</code><br/>
+
+<em>
+
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#condition-v1-meta">
+
+[]Kubernetes meta/v1.Condition
+
+</a>
+
+</em>
+
+</td>
+
+<td>
+
+<p>Conditions of the Tempo deployment health.</p>
+
+</td>
+</tr>
+
+</tbody>
+</table>
 
 ## TempoQueryFrontendSpec { #tempo-grafana-com-v1alpha1-TempoQueryFrontendSpec }
 
