@@ -14,7 +14,7 @@ github.com/blang/semver
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/davecgh/go-spew v1.1.1
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
 # github.com/emicklei/go-restful/v3 v3.11.0
@@ -86,9 +86,9 @@ github.com/google/pprof/profile
 # github.com/google/uuid v1.3.1
 ## explicit
 github.com/google/uuid
-# github.com/grafana-operator/grafana-operator/v5 v5.5.2
+# github.com/grafana/grafana-operator/v5 v5.6.0
 ## explicit; go 1.20
-github.com/grafana-operator/grafana-operator/v5/api/v1beta1
+github.com/grafana/grafana-operator/v5/api/v1beta1
 # github.com/imdario/mergo v0.3.16
 ## explicit; go 1.13
 github.com/imdario/mergo
@@ -170,11 +170,11 @@ github.com/operator-framework/operator-lib/proxy
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pmezard/go-difflib v1.0.0
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.70.0
-## explicit; go 1.17
+# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.71.2
+## explicit; go 1.21
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
 # github.com/prometheus/client_golang v1.18.0

@@ -26,6 +26,12 @@ type TempoMonolithicSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Jaeger UI"
 	JaegerUI *MonolithicJaegerUISpec `json:"jaegerui,omitempty"`
 
+	// Observability defines the observability configuration of the Tempo deployment.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Observability"
+	Observability *MonolithicObservabilitySpec `json:"observability,omitempty"`
+
 	// ManagementState defines whether this instance is managed by the operator or self-managed.
 	// Default: Managed.
 	//
@@ -277,10 +283,100 @@ type MonolithicJaegerUIRouteSpec struct {
 	Termination TLSRouteTerminationType `json:"termination,omitempty"`
 }
 
+// MonolithicObservabilitySpec defines the observability configuration of the Tempo deployment.
+type MonolithicObservabilitySpec struct {
+	// Metrics defines the metric configuration of the Tempo deployment.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Metrics"
+	Metrics *MonolithicObservabilityMetricsSpec `json:"metrics,omitempty"`
+
+	// Grafana defines the Grafana configuration of the Tempo deployment.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Grafana"
+	Grafana *MonolithicObservabilityGrafanaSpec `json:"grafana,omitempty"`
+}
+
+// MonolithicObservabilityMetricsSpec defines the metrics settings of the Tempo deployment.
+type MonolithicObservabilityMetricsSpec struct {
+	// ServiceMonitors defines the ServiceMonitor configuration.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Monitors"
+	ServiceMonitors *MonolithicObservabilityMetricsServiceMonitorsSpec `json:"serviceMonitors,omitempty"`
+
+	// ServiceMonitors defines the PrometheusRule configuration.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Prometheus Rules"
+	PrometheusRules *MonolithicObservabilityMetricsPrometheusRulesSpec `json:"prometheusRules,omitempty"`
+}
+
+// MonolithicObservabilityMetricsServiceMonitorsSpec defines the ServiceMonitor settings.
+type MonolithicObservabilityMetricsServiceMonitorsSpec struct {
+	// Enabled defines if ServiceMonitor objects should be created for this Tempo deployment.
+	//
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enabled",xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	Enabled bool `json:"enabled"`
+}
+
+// MonolithicObservabilityMetricsPrometheusRulesSpec defines the PrometheusRules settings.
+type MonolithicObservabilityMetricsPrometheusRulesSpec struct {
+	// Enabled defines if PrometheusRule objects should be created for this Tempo deployment.
+	//
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enabled",xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	Enabled bool `json:"enabled"`
+}
+
+// MonolithicObservabilityGrafanaSpec defines the Grafana configuration of the Tempo deployment.
+type MonolithicObservabilityGrafanaSpec struct {
+	// DataSource defines the Grafana data source configuration.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Grafana data source"
+	DataSource *MonolithicObservabilityGrafanaDataSourceSpec `json:"dataSource,omitempty"`
+}
+
+// MonolithicObservabilityGrafanaDataSourceSpec defines the Grafana data source configuration of the Tempo deployment.
+type MonolithicObservabilityGrafanaDataSourceSpec struct {
+	// Enabled defines if a Grafana data source should be created for this Tempo deployment.
+	//
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enabled",xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	Enabled bool `json:"enabled"`
+
+	// InstanceSelector defines the Grafana instance where the data source should be created.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Grafana Instance Selector"
+	InstanceSelector *metav1.LabelSelector `json:"instanceSelector,omitempty"`
+}
+
+// MonolithicComponentStatus defines the status of each component.
+type MonolithicComponentStatus struct {
+	// Tempo is a map of the pod status of the Tempo pods.
+	//
+	// +optional
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Tempo",xDescriptors="urn:alm:descriptor:com.tectonic.ui:podStatuses"
+	Tempo PodStatusMap `json:"tempo"`
+}
+
 // TempoMonolithicStatus defines the observed state of TempoMonolithic.
 type TempoMonolithicStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Components provides summary of all Tempo pod status, grouped per component.
+	//
+	// +kubebuilder:validation:Optional
+	Components MonolithicComponentStatus `json:"components,omitempty"`
+
+	// Conditions of the Tempo deployment health.
+	//
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
