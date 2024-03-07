@@ -17,8 +17,8 @@ jobs:
     strategy:
       matrix:
         kube-version:
-          - "1.21"
-          - "1.28"
+          - "1.25"
+          - "1.29"
 
     steps:
       - name: Checkout
