@@ -58,7 +58,7 @@ func (r *TempoMonolithicReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// apply defaults
-	tempo.Default()
+	tempo.Default(r.CtrlConfig)
 
 	if tempo.Spec.Management == v1alpha1.ManagementStateUnmanaged {
 		log.Info("Skipping reconciliation for unmanaged TempoMonolithic resource", "name", req.String())
@@ -112,8 +112,17 @@ func (r *TempoMonolithicReconciler) getOwnedObjects(ctx context.Context, tempo v
 	// Add all resources where the operator can conditionally create an object.
 	// For example, Ingress and Route can be enabled or disabled in the CR.
 
+	servicesList := &corev1.ServiceList{}
+	err := r.List(ctx, servicesList, listOps)
+	if err != nil {
+		return nil, fmt.Errorf("error listing services: %w", err)
+	}
+	for i := range servicesList.Items {
+		ownedObjects[servicesList.Items[i].GetUID()] = &servicesList.Items[i]
+	}
+
 	ingressList := &networkingv1.IngressList{}
-	err := r.List(ctx, ingressList, listOps)
+	err = r.List(ctx, ingressList, listOps)
 	if err != nil {
 		return nil, fmt.Errorf("error listing ingress: %w", err)
 	}
@@ -172,6 +181,7 @@ func (r *TempoMonolithicReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&v1alpha1.TempoMonolithic{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&networkingv1.Ingress{})
 

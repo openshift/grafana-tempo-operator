@@ -1159,7 +1159,7 @@ func TestValidateTenantConfigs(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			err := ValidateTenantConfigs(tc.input)
+			err := ValidateTenantConfigs(tc.input.Spec.Tenants, tc.input.Spec.Template.Gateway.Enabled)
 			assert.Equal(t, tc.wantErr, err)
 		})
 	}
@@ -1398,6 +1398,35 @@ func TestValidatorObservabilityGrafana(t *testing.T) {
 				},
 			},
 			expected: nil,
+		},
+		{
+			name: "datasource enabled, feature gate set, gateway enabled",
+			input: v1alpha1.TempoStack{
+				Spec: v1alpha1.TempoStackSpec{
+					Observability: v1alpha1.ObservabilitySpec{
+						Grafana: v1alpha1.GrafanaConfigSpec{
+							CreateDatasource: true,
+						},
+					},
+					Template: v1alpha1.TempoTemplateSpec{
+						Gateway: v1alpha1.TempoGatewaySpec{
+							Enabled: true,
+						},
+					},
+				},
+			},
+			ctrlConfig: configv1alpha1.ProjectConfig{
+				Gates: configv1alpha1.FeatureGates{
+					GrafanaOperator: true,
+				},
+			},
+			expected: field.ErrorList{
+				field.Invalid(
+					field.NewPath("spec").Child("observability").Child("grafana").Child("createDatasource"),
+					true,
+					"creating a data source for Tempo is not support if the gateway is enabled",
+				),
+			},
 		},
 	}
 

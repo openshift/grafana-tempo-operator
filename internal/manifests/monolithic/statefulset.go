@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
 	"github.com/grafana/tempo-operator/apis/tempo/v1alpha1"
@@ -22,10 +23,9 @@ var (
 )
 
 // BuildTempoStatefulset creates the Tempo statefulset for a monolithic deployment.
-func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
+func BuildTempoStatefulset(opts Options, extraAnnotations map[string]string) (*appsv1.StatefulSet, error) {
 	tempo := opts.Tempo
 	labels := ComponentLabels(manifestutils.TempoMonolithComponentName, tempo.Name)
-	annotations := manifestutils.CommonAnnotations(opts.ConfigChecksum)
 
 	sts := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
@@ -52,10 +52,10 @@ func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      labels,
-					Annotations: annotations,
+					Annotations: extraAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: naming.DefaultServiceAccountName(tempo.Name),
+					ServiceAccountName: serviceAccountName(tempo),
 					NodeSelector:       buildNodeSelector(tempo.Spec.Scheduler),
 					Tolerations:        buildTolerations(tempo.Spec.Scheduler),
 					Affinity:           buildAffinity(tempo.Spec.Scheduler, labels),
@@ -76,8 +76,18 @@ func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
 									ReadOnly:  true,
 								},
 							},
-							Ports:           buildTempoPorts(opts),
-							ReadinessProbe:  manifestutils.TempoReadinessProbe(false),
+							Ports: buildTempoContainerPorts(opts),
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Scheme: corev1.URISchemeHTTP,
+										Path:   manifestutils.TempoReadinessPath,
+										Port:   intstr.FromString(manifestutils.TempoInternalServerPortName),
+									},
+								},
+								InitialDelaySeconds: 15,
+								TimeoutSeconds:      1,
+							},
 							SecurityContext: manifestutils.TempoContainerSecurityContext(),
 							Resources:       ptr.Deref(tempo.Spec.Resources, corev1.ResourceRequirements{}),
 						},
@@ -88,7 +98,7 @@ func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: naming.Name(manifestutils.TempoMonolithComponentName, tempo.Name),
+										Name: naming.Name(manifestutils.TempoConfigName, tempo.Name),
 									},
 								},
 							},
@@ -111,21 +121,35 @@ func BuildTempoStatefulset(opts Options) (*appsv1.StatefulSet, error) {
 	if tempo.Spec.Ingestion != nil && tempo.Spec.Ingestion.OTLP != nil {
 		if tempo.Spec.Ingestion.OTLP.GRPC != nil && tempo.Spec.Ingestion.OTLP.GRPC.Enabled &&
 			tempo.Spec.Ingestion.OTLP.GRPC.TLS != nil && tempo.Spec.Ingestion.OTLP.GRPC.TLS.Enabled {
-			manifestutils.ConfigureTLSVolumes(
-				&sts.Spec.Template.Spec, 0, *tempo.Spec.Ingestion.OTLP.GRPC.TLS,
-				manifestutils.ReceiverTLSCADir, manifestutils.ReceiverTLSCertDir, "receiver-tls-grpc",
+			err := manifestutils.MountTLSSpecVolumes(
+				&sts.Spec.Template.Spec, "tempo", *tempo.Spec.Ingestion.OTLP.GRPC.TLS,
+				manifestutils.ReceiverTLSCADir, manifestutils.ReceiverTLSCertDir,
 			)
+			if err != nil {
+				return nil, err
+			}
 		}
+
 		if tempo.Spec.Ingestion.OTLP.HTTP != nil && tempo.Spec.Ingestion.OTLP.HTTP.Enabled &&
 			tempo.Spec.Ingestion.OTLP.HTTP.TLS != nil && tempo.Spec.Ingestion.OTLP.HTTP.TLS.Enabled {
-			manifestutils.ConfigureTLSVolumes(
-				&sts.Spec.Template.Spec, 0, *tempo.Spec.Ingestion.OTLP.HTTP.TLS,
-				manifestutils.ReceiverTLSCADir, manifestutils.ReceiverTLSCertDir, "receiver-tls-http",
+			err := manifestutils.MountTLSSpecVolumes(
+				&sts.Spec.Template.Spec, "tempo", *tempo.Spec.Ingestion.OTLP.HTTP.TLS,
+				manifestutils.ReceiverTLSCADir, manifestutils.ReceiverTLSCertDir,
 			)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return sts, nil
+}
+
+func serviceAccountName(tempo v1alpha1.TempoMonolithic) string {
+	if tempo.Spec.ServiceAccount != "" {
+		return tempo.Spec.ServiceAccount
+	}
+	return naming.DefaultServiceAccountName(tempo.Name)
 }
 
 func buildNodeSelector(scheduler *v1alpha1.MonolithicSchedulerSpec) map[string]string {
@@ -149,12 +173,17 @@ func buildAffinity(scheduler *v1alpha1.MonolithicSchedulerSpec, labels labels.Se
 	return manifestutils.DefaultAffinity(labels)
 }
 
-func buildTempoPorts(opts Options) []corev1.ContainerPort {
+func buildTempoContainerPorts(opts Options) []corev1.ContainerPort {
 	tempo := opts.Tempo
 	ports := []corev1.ContainerPort{
 		{
 			Name:          manifestutils.HttpPortName,
 			ContainerPort: manifestutils.PortHTTPServer,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		{
+			Name:          manifestutils.TempoInternalServerPortName,
+			ContainerPort: manifestutils.PortInternalHTTPServer,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	}
@@ -233,7 +262,7 @@ func configureStorage(opts Options, sts *appsv1.StatefulSet) error {
 			return errors.New("please configure .spec.storage.traces.s3")
 		}
 
-		err := manifestutils.ConfigureS3Storage(&sts.Spec.Template.Spec, 0, tempo.Spec.Storage.Traces.S3.Secret, tempo.Spec.Storage.Traces.S3.TLS)
+		err := manifestutils.ConfigureS3Storage(&sts.Spec.Template.Spec, "tempo", tempo.Spec.Storage.Traces.S3.Secret, tempo.Spec.Storage.Traces.S3.TLS)
 		if err != nil {
 			return err
 		}
@@ -243,7 +272,7 @@ func configureStorage(opts Options, sts *appsv1.StatefulSet) error {
 			return errors.New("please configure .spec.storage.traces.azure")
 		}
 
-		err := manifestutils.ConfigureAzureStorage(&sts.Spec.Template.Spec, 0, tempo.Spec.Storage.Traces.Azure.Secret, nil)
+		err := manifestutils.ConfigureAzureStorage(&sts.Spec.Template.Spec, "tempo", tempo.Spec.Storage.Traces.Azure.Secret, nil)
 		if err != nil {
 			return err
 		}
@@ -253,7 +282,7 @@ func configureStorage(opts Options, sts *appsv1.StatefulSet) error {
 			return errors.New("please configure .spec.storage.traces.gcs")
 		}
 
-		err := manifestutils.ConfigureGCS(&sts.Spec.Template.Spec, 0, tempo.Spec.Storage.Traces.GCS.Secret, nil)
+		err := manifestutils.ConfigureGCS(&sts.Spec.Template.Spec, "tempo", tempo.Spec.Storage.Traces.GCS.Secret, nil)
 		if err != nil {
 			return err
 		}
