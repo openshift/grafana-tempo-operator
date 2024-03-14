@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
 	configv1alpha1 "github.com/grafana/tempo-operator/apis/config/v1alpha1"
@@ -54,11 +55,10 @@ func TestStatefulsetMemoryStorage(t *testing.T) {
 			},
 		},
 	}
-	sts, err := BuildTempoStatefulset(opts)
+	sts, err := BuildTempoStatefulset(opts, map[string]string{"tempo.grafana.com/tempoConfig.hash": "abc"})
 	require.NoError(t, err)
 
 	labels := ComponentLabels(manifestutils.TempoMonolithComponentName, "sample")
-	annotations := manifestutils.CommonAnnotations("")
 	require.Equal(t, &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -76,8 +76,10 @@ func TestStatefulsetMemoryStorage(t *testing.T) {
 			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: annotations,
+					Labels: labels,
+					Annotations: map[string]string{
+						"tempo.grafana.com/tempoConfig.hash": "abc",
+					},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "tempo-sample",
@@ -110,12 +112,27 @@ func TestStatefulsetMemoryStorage(t *testing.T) {
 									Protocol:      corev1.ProtocolTCP,
 								},
 								{
+									Name:          "tempo-internal",
+									ContainerPort: 3101,
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
 									Name:          "otlp-grpc",
 									ContainerPort: 4317,
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							ReadinessProbe:  manifestutils.TempoReadinessProbe(false),
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Scheme: corev1.URISchemeHTTP,
+										Path:   "/ready",
+										Port:   intstr.FromString("tempo-internal"),
+									},
+								},
+								InitialDelaySeconds: 15,
+								TimeoutSeconds:      1,
+							},
 							SecurityContext: manifestutils.TempoContainerSecurityContext(),
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -135,7 +152,7 @@ func TestStatefulsetMemoryStorage(t *testing.T) {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "tempo-sample",
+										Name: "tempo-sample-config",
 									},
 								},
 							},
@@ -177,7 +194,7 @@ func TestStatefulsetPVStorage(t *testing.T) {
 			},
 		},
 	}
-	sts, err := BuildTempoStatefulset(opts)
+	sts, err := BuildTempoStatefulset(opts, map[string]string{})
 	require.NoError(t, err)
 
 	require.Equal(t, []corev1.VolumeMount{
@@ -198,7 +215,7 @@ func TestStatefulsetPVStorage(t *testing.T) {
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "tempo-sample",
+						Name: "tempo-sample-config",
 					},
 				},
 			},
@@ -255,7 +272,7 @@ func TestStatefulsetS3TLSStorage(t *testing.T) {
 			},
 		},
 	}
-	sts, err := BuildTempoStatefulset(opts)
+	sts, err := BuildTempoStatefulset(opts, map[string]string{})
 	require.NoError(t, err)
 
 	require.Equal(t, []corev1.VolumeMount{
@@ -269,12 +286,12 @@ func TestStatefulsetS3TLSStorage(t *testing.T) {
 			MountPath: "/var/tempo",
 		},
 		{
-			Name:      "storage-ca",
+			Name:      "custom-ca",
 			MountPath: "/var/run/tls/storage/ca",
 			ReadOnly:  true,
 		},
 		{
-			Name:      "storage-cert",
+			Name:      "custom-cert",
 			MountPath: "/var/run/tls/storage/cert",
 			ReadOnly:  true,
 		},
@@ -319,13 +336,13 @@ func TestStatefulsetS3TLSStorage(t *testing.T) {
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "tempo-sample",
+						Name: "tempo-sample-config",
 					},
 				},
 			},
 		},
 		{
-			Name: "storage-ca",
+			Name: "custom-ca",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -335,7 +352,7 @@ func TestStatefulsetS3TLSStorage(t *testing.T) {
 			},
 		},
 		{
-			Name: "storage-cert",
+			Name: "custom-cert",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: "custom-cert",
@@ -395,7 +412,7 @@ func TestStatefulsetReceiverTLS(t *testing.T) {
 			},
 		},
 	}
-	sts, err := BuildTempoStatefulset(opts)
+	sts, err := BuildTempoStatefulset(opts, map[string]string{})
 	require.NoError(t, err)
 
 	require.Equal(t, []corev1.VolumeMount{
@@ -409,12 +426,12 @@ func TestStatefulsetReceiverTLS(t *testing.T) {
 			MountPath: "/var/tempo",
 		},
 		{
-			Name:      "receiver-tls-grpc-ca",
+			Name:      "custom-ca",
 			MountPath: "/var/run/ca-receiver",
 			ReadOnly:  true,
 		},
 		{
-			Name:      "receiver-tls-grpc-cert",
+			Name:      "custom-cert",
 			MountPath: "/var/run/tls/receiver",
 			ReadOnly:  true,
 		},
@@ -426,7 +443,7 @@ func TestStatefulsetReceiverTLS(t *testing.T) {
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "tempo-sample",
+						Name: "tempo-sample-config",
 					},
 				},
 			},
@@ -440,7 +457,7 @@ func TestStatefulsetReceiverTLS(t *testing.T) {
 			},
 		},
 		{
-			Name: "receiver-tls-grpc-ca",
+			Name: "custom-ca",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -450,7 +467,7 @@ func TestStatefulsetReceiverTLS(t *testing.T) {
 			},
 		},
 		{
-			Name: "receiver-tls-grpc-cert",
+			Name: "custom-cert",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: "custom-cert",
@@ -496,6 +513,11 @@ func TestStatefulsetPorts(t *testing.T) {
 					ContainerPort: 3200,
 					Protocol:      corev1.ProtocolTCP,
 				},
+				{
+					Name:          "tempo-internal",
+					ContainerPort: 3101,
+					Protocol:      corev1.ProtocolTCP,
+				},
 			},
 		},
 		{
@@ -511,6 +533,11 @@ func TestStatefulsetPorts(t *testing.T) {
 				{
 					Name:          "http",
 					ContainerPort: 3200,
+					Protocol:      corev1.ProtocolTCP,
+				},
+				{
+					Name:          "tempo-internal",
+					ContainerPort: 3101,
 					Protocol:      corev1.ProtocolTCP,
 				},
 				{
@@ -536,6 +563,11 @@ func TestStatefulsetPorts(t *testing.T) {
 					Protocol:      corev1.ProtocolTCP,
 				},
 				{
+					Name:          "tempo-internal",
+					ContainerPort: 3101,
+					Protocol:      corev1.ProtocolTCP,
+				},
+				{
 					Name:          "otlp-http",
 					ContainerPort: 4318,
 					Protocol:      corev1.ProtocolTCP,
@@ -547,7 +579,7 @@ func TestStatefulsetPorts(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			opts.Tempo.Spec.Ingestion = test.input
-			sts, err := BuildTempoStatefulset(opts)
+			sts, err := BuildTempoStatefulset(opts, map[string]string{})
 			require.NoError(t, err)
 			require.Equal(t, test.expected, sts.Spec.Template.Spec.Containers[0].Ports)
 		})
@@ -601,7 +633,7 @@ func TestStatefulsetSchedulingRules(t *testing.T) {
 			},
 		},
 	}
-	sts, err := BuildTempoStatefulset(opts)
+	sts, err := BuildTempoStatefulset(opts, map[string]string{})
 	require.NoError(t, err)
 
 	require.Equal(t, map[string]string{
@@ -630,4 +662,53 @@ func TestStatefulsetSchedulingRules(t *testing.T) {
 			},
 		},
 	}, sts.Spec.Template.Spec.Affinity)
+}
+
+func TestStatefulsetCustomServiceAccount(t *testing.T) {
+	opts := Options{
+		CtrlConfig: configv1alpha1.ProjectConfig{
+			DefaultImages: configv1alpha1.ImagesSpec{
+				Tempo: "docker.io/grafana/tempo:x.y.z",
+			},
+		},
+		Tempo: v1alpha1.TempoMonolithic{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "sample",
+				Namespace: "default",
+			},
+			Spec: v1alpha1.TempoMonolithicSpec{
+				Storage: &v1alpha1.MonolithicStorageSpec{
+					Traces: v1alpha1.MonolithicTracesStorageSpec{
+						Backend: "memory",
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "no custom serviceaccount",
+			input:    "",
+			expected: "tempo-sample",
+		},
+		{
+			name:     "custom serviceaccount",
+			input:    "custom-sa",
+			expected: "custom-sa",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			opts.Tempo.Spec.ServiceAccount = test.input
+			sts, err := BuildTempoStatefulset(opts, map[string]string{})
+			require.NoError(t, err)
+			require.Equal(t, test.expected, sts.Spec.Template.Spec.ServiceAccountName)
+		})
+	}
 }
