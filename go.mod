@@ -8,11 +8,11 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-cmp v0.6.0
-	github.com/grafana/grafana-operator/v5 v5.8.1
+	github.com/grafana/grafana-operator/v5 v5.9.0
 	github.com/imdario/mergo v0.3.16
 	github.com/novln/docker-parser v1.0.0
 	github.com/onsi/ginkgo/v2 v2.17.2
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	github.com/openshift/library-go v0.0.0-20220622115547-84d884f4c9f6
 	github.com/operator-framework/operator-lib v0.12.0
 	github.com/prometheus/client_golang v1.19.0
@@ -30,7 +30,7 @@ require (
 	k8s.io/apiserver v0.29.4
 	k8s.io/client-go v0.29.4
 	k8s.io/klog/v2 v2.120.1
-	sigs.k8s.io/controller-runtime v0.17.2
+	sigs.k8s.io/controller-runtime v0.17.3
 	sigs.k8s.io/yaml v1.4.0
 )
 
