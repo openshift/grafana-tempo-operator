@@ -20,7 +20,7 @@ github.com/cespare/xxhash/v2
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/emicklei/go-restful/v3 v3.11.0
+# github.com/emicklei/go-restful/v3 v3.11.2
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
@@ -123,7 +123,7 @@ github.com/google/uuid
 # github.com/grafana/grafana-openapi-client-go v0.0.0-20240215164046-eb0e60d27cb7
 ## explicit; go 1.20
 github.com/grafana/grafana-openapi-client-go/models
-# github.com/grafana/grafana-operator/v5 v5.8.1
+# github.com/grafana/grafana-operator/v5 v5.9.0
 ## explicit; go 1.21
 github.com/grafana/grafana-operator/v5/api/v1beta1
 # github.com/imdario/mergo v0.3.16
@@ -186,7 +186,7 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.33.0
+# github.com/onsi/gomega v1.33.1
 ## explicit; go 1.20
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -207,8 +207,8 @@ github.com/openshift/api/route/v1
 ## explicit; go 1.17
 github.com/openshift/library-go/pkg/certs
 github.com/openshift/library-go/pkg/crypto
-# github.com/operator-framework/operator-lib v0.12.0
-## explicit; go 1.20
+# github.com/operator-framework/operator-lib v0.13.0
+## explicit; go 1.21
 github.com/operator-framework/operator-lib/proxy
 # github.com/pkg/errors v0.9.1
 ## explicit
@@ -317,8 +317,8 @@ go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapio
-# golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
-## explicit; go 1.18
+# golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+## explicit; go 1.20
 golang.org/x/exp/maps
 # golang.org/x/net v0.24.0
 ## explicit; go 1.18
@@ -365,8 +365,8 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.3.0
-## explicit
+# golang.org/x/time v0.5.0
+## explicit; go 1.18
 golang.org/x/time/rate
 # golang.org/x/tools v0.20.0
 ## explicit; go 1.19
@@ -375,7 +375,7 @@ golang.org/x/tools/go/ast/inspector
 # gomodules.xyz/jsonpatch/v2 v2.4.0
 ## explicit; go 1.20
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/appengine v1.6.7
+# google.golang.org/appengine v1.6.8
 ## explicit; go 1.11
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/base
@@ -707,8 +707,8 @@ k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
-# k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
-## explicit; go 1.19
+# k8s.io/kube-openapi v0.0.0-20240221221325-2ac9dc51f3f1
+## explicit; go 1.21
 k8s.io/kube-openapi/pkg/cached
 k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/pkg/handler3
@@ -730,7 +730,7 @@ k8s.io/utils/pointer
 k8s.io/utils/ptr
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
-# sigs.k8s.io/controller-runtime v0.17.2
+# sigs.k8s.io/controller-runtime v0.17.3
 ## explicit; go 1.21
 sigs.k8s.io/controller-runtime
 sigs.k8s.io/controller-runtime/pkg/builder
