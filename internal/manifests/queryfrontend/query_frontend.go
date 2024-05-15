@@ -21,6 +21,7 @@ import (
 	"github.com/grafana/tempo-operator/internal/manifests/manifestutils"
 	"github.com/grafana/tempo-operator/internal/manifests/memberlist"
 	"github.com/grafana/tempo-operator/internal/manifests/naming"
+	"github.com/grafana/tempo-operator/internal/manifests/oauthproxy"
 )
 
 const (
@@ -57,9 +58,7 @@ func BuildQueryFrontend(params manifestutils.Params) ([]client.Object, error) {
 		}
 	}
 
-	manifests = append(manifests, d)
-
-	svcs := services(tempo)
+	svcs := services(params)
 	for _, s := range svcs {
 		manifests = append(manifests, s)
 	}
@@ -74,9 +73,28 @@ func BuildQueryFrontend(params manifestutils.Params) ([]client.Object, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			jaegerUIAuthentication := tempo.Spec.Template.QueryFrontend.JaegerQuery.Authentication
+
+			if jaegerUIAuthentication != nil && jaegerUIAuthentication.Enabled {
+				oauthproxy.PatchDeploymentForOauthProxy(
+					tempo.ObjectMeta, params.CtrlConfig,
+					tempo.Spec.Template.QueryFrontend.JaegerQuery.Authentication,
+					tempo.Spec.Images, d)
+
+				oauthproxy.PatchQueryFrontEndService(getQueryFrontendService(tempo, svcs), tempo.Name)
+				secret, err := oauthproxy.OAuthCookieSessionSecret(tempo.ObjectMeta)
+				if err != nil {
+					return nil, err
+				}
+				manifests = append(manifests, oauthproxy.OAuthServiceAccount(tempo.ObjectMeta), secret)
+				oauthproxy.PatchRouteForOauthProxy(routeObj)
+			}
 			manifests = append(manifests, routeObj)
 		}
 	}
+
+	manifests = append(manifests, d)
 
 	if tempo.Spec.Template.QueryFrontend.JaegerQuery.Enabled && tempo.Spec.Template.QueryFrontend.JaegerQuery.MonitorTab.Enabled &&
 		tempo.Spec.Template.QueryFrontend.JaegerQuery.MonitorTab.PrometheusEndpoint == thanosQuerierOpenShiftMonitoring {
@@ -85,6 +103,16 @@ func BuildQueryFrontend(params manifestutils.Params) ([]client.Object, error) {
 	}
 
 	return manifests, nil
+}
+
+func getQueryFrontendService(tempo v1alpha1.TempoStack, services []*corev1.Service) *corev1.Service {
+	serviceName := naming.Name(manifestutils.QueryFrontendComponentName, tempo.Name)
+	for _, svc := range services {
+		if svc.Name == serviceName {
+			return svc
+		}
+	}
+	return nil
 }
 
 func resources(tempo v1alpha1.TempoStack) corev1.ResourceRequirements {
@@ -356,7 +384,8 @@ func openShiftMonitoringClusterRoleBinding(tempo v1alpha1.TempoStack) rbacv1.Clu
 	}
 }
 
-func services(tempo v1alpha1.TempoStack) []*corev1.Service {
+func services(params manifestutils.Params) []*corev1.Service {
+	tempo := params.Tempo
 	labels := manifestutils.ComponentLabels(manifestutils.QueryFrontendComponentName, tempo.Name)
 	frontEndService := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -429,7 +458,7 @@ func services(tempo v1alpha1.TempoStack) []*corev1.Service {
 			},
 			{
 				Name:       manifestutils.JaegerUIPortName,
-				Port:       manifestutils.PortJaegerUI,
+				Port:       int32(manifestutils.PortJaegerUI),
 				TargetPort: intstr.FromString(manifestutils.JaegerUIPortName),
 			},
 			{
@@ -514,6 +543,8 @@ func route(tempo v1alpha1.TempoStack) (*routev1.Route, error) {
 		return nil, fmt.Errorf("unsupported tls termination specified for route")
 	}
 
+	serviceName := naming.Name(manifestutils.QueryFrontendComponentName, tempo.Name)
+
 	return &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        queryFrontendName,
@@ -525,7 +556,7 @@ func route(tempo v1alpha1.TempoStack) (*routev1.Route, error) {
 			Host: tempo.Spec.Template.QueryFrontend.JaegerQuery.Ingress.Host,
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
-				Name: queryFrontendName,
+				Name: serviceName,
 			},
 			Port: &routev1.RoutePort{
 				TargetPort: intstr.FromString(manifestutils.JaegerUIPortName),
