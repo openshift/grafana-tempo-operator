@@ -597,6 +597,13 @@ type JaegerQuerySpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServicesQueryDuration"
 	ServicesQueryDuration *metav1.Duration `json:"servicesQueryDuration,omitempty"`
+
+	// Authentication defines the options for the oauth proxy used to protect jaeger UI
+	//
+	// +optional
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Jaeger UI authentication configuration"
+	Authentication *JaegerQueryAuthenticationSpec `json:"authentication,omitempty"`
 }
 
 // JaegerQueryMonitor defines configuration for the service monitoring tab in the Jaeger console.
