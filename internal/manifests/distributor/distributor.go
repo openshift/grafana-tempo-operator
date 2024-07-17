@@ -44,7 +44,8 @@ func BuildDistributor(params manifestutils.Params) ([]client.Object, error) {
 	objects := []client.Object{dep, distributorService}
 
 	if tempo.Spec.Template.Distributor.TLS.Enabled {
-		if params.CtrlConfig.Gates.OpenShift.ServingCertsService {
+		if params.CtrlConfig.Gates.OpenShift.ServingCertsService && tempo.Spec.Template.Distributor.TLS.CA == "" &&
+			tempo.Spec.Template.Distributor.TLS.Cert == "" {
 			caSecretName := naming.ServingCABundleName(tempo.Name)
 			certSecretName := naming.ServingCertName(manifestutils.DistributorComponentName, tempo.Name)
 			err = configureReceiversTLS(dep, caSecretName, certSecretName)
@@ -77,11 +78,12 @@ func resources(tempo v1alpha1.TempoStack) corev1.ResourceRequirements {
 func configureReceiversTLS(dep *v1.Deployment, caSecretName, certSecretName string) error {
 	podSpec := &dep.Spec.Template.Spec
 	if caSecretName != "" {
+		volumeName := naming.DNSName(caSecretName)
 		/*Configure CA*/
 		secretCAVolumeSpec := corev1.PodSpec{
 			Volumes: []corev1.Volume{
 				{
-					Name: caSecretName,
+					Name: volumeName,
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -96,7 +98,7 @@ func configureReceiversTLS(dep *v1.Deployment, caSecretName, certSecretName stri
 		secretCAContainerSpec := corev1.Container{
 			VolumeMounts: []corev1.VolumeMount{
 				{
-					Name:      caSecretName,
+					Name:      volumeName,
 					ReadOnly:  true,
 					MountPath: manifestutils.ReceiverTLSCADir,
 				},
@@ -110,11 +112,12 @@ func configureReceiversTLS(dep *v1.Deployment, caSecretName, certSecretName stri
 			return kverrors.Wrap(err, "failed to merge container")
 		}
 	}
+	secretVolumeName := naming.DNSName(certSecretName)
 
 	secretCertVolumeSpec := corev1.PodSpec{
 		Volumes: []corev1.Volume{
 			{
-				Name: certSecretName,
+				Name: secretVolumeName,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName: certSecretName,
@@ -126,7 +129,7 @@ func configureReceiversTLS(dep *v1.Deployment, caSecretName, certSecretName stri
 	secretCertContainerSpec := corev1.Container{
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      certSecretName,
+				Name:      secretVolumeName,
 				ReadOnly:  true,
 				MountPath: manifestutils.ReceiverTLSCertDir,
 			},
