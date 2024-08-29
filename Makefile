@@ -1,5 +1,5 @@
 # Current Operator version
-OPERATOR_VERSION ?= 0.12.0
+OPERATOR_VERSION ?= 0.13.0
 TEMPO_VERSION ?= 2.5.0
 TEMPO_QUERY_VERSION ?= 2.5.0
 TEMPO_GATEWAY_VERSION ?= main-2024-08-05-11d0d94
@@ -500,3 +500,5 @@ release-artifacts: set-image-controller ## Generate release artifacts
 	mkdir -p dist
 	$(KUSTOMIZE) build config/overlays/community -o dist/tempo-operator.yaml
 	$(KUSTOMIZE) build config/overlays/openshift -o dist/tempo-operator-openshift.yaml
+	echo "---" >> dist/tempo-operator-openshift.yaml
+	cat bundle/openshift/manifests/tempo-operator-manager-rolebinding-cluster-monitoring-view_rbac.authorization.k8s.io_v1_clusterrolebinding.yaml >> dist/tempo-operator-openshift.yaml
