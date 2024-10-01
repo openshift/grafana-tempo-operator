@@ -14,6 +14,9 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
+# github.com/blang/semver/v4 v4.0.0
+## explicit; go 1.14
+github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
@@ -207,6 +210,12 @@ github.com/openshift/api/route/v1
 ## explicit; go 1.17
 github.com/openshift/library-go/pkg/certs
 github.com/openshift/library-go/pkg/crypto
+# github.com/operator-framework/api v0.23.0
+## explicit; go 1.21
+github.com/operator-framework/api/pkg/lib/version
+github.com/operator-framework/api/pkg/operators
+github.com/operator-framework/api/pkg/operators/v1
+github.com/operator-framework/api/pkg/operators/v1alpha1
 # github.com/operator-framework/operator-lib v0.13.0
 ## explicit; go 1.21
 github.com/operator-framework/operator-lib/proxy
@@ -241,6 +250,9 @@ github.com/prometheus/common/version
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/sirupsen/logrus v1.9.2
+## explicit; go 1.13
+github.com/sirupsen/logrus
 # github.com/spf13/cobra v1.8.1
 ## explicit; go 1.15
 github.com/spf13/cobra
