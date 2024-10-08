@@ -289,8 +289,9 @@ spec:
                     type: object
                 type: object
               replicationFactor:
-                description: ReplicationFactor is used to define how many component
-                  replicas should exist.
+                description: The replication factor is a configuration setting that
+                  determines how many ingesters need to acknowledge the data from
+                  the distributors before accepting a span.
                 type: integer
               resources:
                 description: Resources defines resources configuration.
@@ -2710,6 +2711,12 @@ spec:
                 required:
                 - mode
                 type: object
+              timeout:
+                description: |-
+                  Timeout configures the same timeout on all components starting at ingress down to the ingestor/querier.
+                  Timeout configuration on a specific component has a higher precedence.
+                  Defaults to 30 seconds.
+                type: string
             required:
             - storage
             type: object
