@@ -73,8 +73,8 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Logging & Tracing,Monitoring
-    containerImage: ghcr.io/grafana/tempo-operator/tempo-operator:v0.15.1
-    createdAt: "2025-02-20T06:15:35Z"
+    containerImage: ghcr.io/grafana/tempo-operator/tempo-operator:v0.15.3
+    createdAt: "2025-02-25T15:23:55Z"
     description: Create and manage deployments of Tempo, a high-scale distributed
       tracing backend.
     operatorframework.io/cluster-monitoring: "true"
@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/grafana/tempo-operator
     support: Grafana Tempo Operator SIG
-  name: tempo-operator.v0.15.1
+  name: tempo-operator.v0.15.3
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -459,6 +459,19 @@ spec:
       - description: ServiceMonitors defines the ServiceMonitor configuration.
         displayName: Service Monitors
         path: observability.metrics.serviceMonitors
+      - description: Query defines query configuration.
+        displayName: Query Configuration
+        path: query
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          RBAC defines query RBAC options.
+          This option can be used only with multi-tenancy.
+        displayName: Query RBAC Settings
+        path: query.rbac
+      - description: Enabled defines if the query RBAC should be enabled.
+        displayName: Query RBAC Enabled
+        path: query.rbac.enabled
       - description: ServiceAccount defines the Service Account to use for all Tempo
           components.
         displayName: Service Account
@@ -995,7 +1008,7 @@ spec:
           all pods of this component.
         displayName: PodSecurityContext
         path: template.gateway.podSecurityContext
-      - description: RBAC defines RBAC options.
+      - description: RBAC defines query RBAC options.
         displayName: Query RBAC Settings
         path: template.gateway.rbac
       - description: Enabled defines if the query RBAC should be enabled.
@@ -1519,7 +1532,7 @@ spec:
                   value: quay.io/observatorium/opa-openshift:main-2025-01-22-ed30f3c
                 - name: RELATED_IMAGE_OAUTH_PROXY
                   value: quay.io/openshift/origin-oauth-proxy:4.14
-                image: ghcr.io/grafana/tempo-operator/tempo-operator:v0.15.1
+                image: ghcr.io/grafana/tempo-operator/tempo-operator:v0.15.3
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1649,7 +1662,7 @@ spec:
     name: tempo-gateway-opa
   - image: quay.io/openshift/origin-oauth-proxy:4.14
     name: oauth-proxy
-  version: 0.15.1
+  version: 0.15.3
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
