@@ -739,6 +739,8 @@ func TestStatefulsetGateway(t *testing.T) {
 						Backend: "memory",
 					},
 				},
+				// Fix nil pointer dereference
+				Query: &v1alpha1.MonolithicQuerySpec{},
 				Ingestion: &v1alpha1.MonolithicIngestionSpec{
 					OTLP: &v1alpha1.MonolithicIngestionOTLPSpec{
 						GRPC: &v1alpha1.MonolithicIngestionOTLPProtocolsGRPCSpec{
@@ -937,8 +939,6 @@ func TestStatefulsetGateway(t *testing.T) {
 		Image: "quay.io/observatorium/opa-openshift:x.y.z",
 		Args: []string{
 			"--log.level=warn",
-			"--opa.admin-groups=system:cluster-admins,cluster-admin,dedicated-admin",
-			"--opa.matcher=kubernetes_namespace_name",
 			"--web.listen=:8082",
 			"--web.internal.listen=:8083",
 			"--web.healthchecks.url=http://localhost:8082",
@@ -1223,12 +1223,11 @@ func TestStatefulsetGatewayRBAC(t *testing.T) {
 		Image: "quay.io/observatorium/opa-openshift:x.y.z",
 		Args: []string{
 			"--log.level=warn",
-			"--opa.admin-groups=system:cluster-admins,cluster-admin,dedicated-admin",
-			"--opa.matcher=kubernetes_namespace_name",
 			"--web.listen=:8082",
 			"--web.internal.listen=:8083",
 			"--web.healthchecks.url=http://localhost:8082",
 			"--opa.package=tempomonolithic",
+			"--opa.matcher=kubernetes_namespace_name",
 			"--openshift.mappings=dev=tempo.grafana.com",
 			"--openshift.mappings=prod=tempo.grafana.com",
 		},
