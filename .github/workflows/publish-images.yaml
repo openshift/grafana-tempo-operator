@@ -1,5 +1,8 @@
 name: "Publish operator"
 
+permissions:
+  packages: write # push container image
+
 on:
   push:
     branches: [main]
