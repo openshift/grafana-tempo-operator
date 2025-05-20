@@ -57,6 +57,7 @@ func deployment(params manifestutils.Params) (*v1.Deployment, error) {
 	tempo := params.Tempo
 	labels := manifestutils.ComponentLabels(manifestutils.CompactorComponentName, tempo.Name)
 	annotations := manifestutils.CommonAnnotations(params.ConfigChecksum)
+	annotations = manifestutils.StorageSecretHash(params.StorageParams, annotations)
 	cfg := tempo.Spec.Template.Compactor
 	image := tempo.Spec.Images.Tempo
 	if image == "" {
@@ -153,6 +154,9 @@ func deployment(params manifestutils.Params) (*v1.Deployment, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	manifestutils.SetGoMemLimit("tempo", &d.Spec.Template.Spec)
+
 	return d, nil
 }
 
