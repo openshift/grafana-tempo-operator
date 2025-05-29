@@ -11,8 +11,7 @@ import (
 	"github.com/grafana/tempo-operator/api/tempo/v1alpha1"
 )
 
-// ConfigureAzureStorage mounts the Azure Storage credentials in a pod.
-func ConfigureAzureStorage(pod *corev1.PodSpec, containerName string, storageSecretName string, tlsSpec *v1alpha1.TLSSpec) error {
+func configureAzureStaticTokenStorage(pod *corev1.PodSpec, containerName string, storageSecretName string) error {
 	containerIdx, err := findContainerIndex(pod, containerName)
 	if err != nil {
 		return err
@@ -49,17 +48,88 @@ func ConfigureAzureStorage(pod *corev1.PodSpec, containerName string, storageSec
 	return nil
 }
 
-// ConfigureGCS mounts the Google Cloud Storage credentials in a pod.
-func ConfigureGCS(pod *corev1.PodSpec, containerName string, storageSecretName string, credentialMode v1alpha1.CredentialMode) error {
-	if credentialMode == v1alpha1.CredentialModeStatic {
-		secretVolumeName := "storage-gcs-key"      // nolint #nosec
-		secretDirectory := "/etc/storage/secrets/" // nolint #nosec
-		secretFile := path.Join(secretDirectory, "key.json")
+func configureAzureShortTokenStorage(pod *corev1.PodSpec, params *AzureStorage, containerName string, storageSecretName string) error {
+	containerIdx, err := findContainerIndex(pod, containerName)
+	if err != nil {
+		return err
+	}
 
-		containerIdx, err := findContainerIndex(pod, containerName)
-		if err != nil {
-			return err
-		}
+	pod.Containers[containerIdx].Env = append(pod.Containers[containerIdx].Env, []corev1.EnvVar{
+		{
+			Name: "AZURE_ACCOUNT_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "account_name",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: storageSecretName,
+					},
+				},
+			},
+		},
+		{
+			Name: "AZURE_CLIENT_ID",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "client_id",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: storageSecretName,
+					},
+				},
+			},
+		},
+		{
+			Name: "AZURE_TENANT_ID",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "tenant_id",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: storageSecretName,
+					},
+				},
+			},
+		},
+		{
+			Name:  "AZURE_FEDERATED_TOKEN_FILE",
+			Value: ServiceAccountTokenFilePath,
+		},
+	}...)
+	pod.Containers[containerIdx].Args = append(pod.Containers[containerIdx].Args, []string{
+		"--storage.trace.azure.storage_account_name=$(AZURE_ACCOUNT_NAME)",
+	}...)
+
+	pod.Volumes = append(pod.Volumes, saTokenVolume(params.Audience))
+
+	pod.Containers[containerIdx].VolumeMounts = append(pod.Containers[containerIdx].VolumeMounts, corev1.VolumeMount{
+		Name:      saTokenVolumeName,
+		MountPath: saTokenVolumeMountPath,
+	})
+
+	return nil
+}
+
+// ConfigureAzureStorage mounts the Azure Storage credentials in a pod.
+func ConfigureAzureStorage(podTemplate *corev1.PodSpec, params *AzureStorage, containerName string, storageSecretName string,
+	credentialMode v1alpha1.CredentialMode) error {
+	if credentialMode == v1alpha1.CredentialModeToken {
+		return configureAzureShortTokenStorage(podTemplate, params, containerName, storageSecretName)
+	}
+
+	return configureAzureStaticTokenStorage(podTemplate, containerName, storageSecretName)
+}
+
+// ConfigureGCS mounts the Google Cloud Storage credentials in a pod.
+func ConfigureGCS(pod *corev1.PodSpec, containerName string, storageSecretName string, audience string, credentialMode v1alpha1.CredentialMode) error {
+	secretVolumeName := "storage-gcs-key"      // nolint #nosec
+	secretDirectory := "/etc/storage/secrets/" // nolint #nosec
+	secretFile := path.Join(secretDirectory, "key.json")
+
+	containerIdx, err := findContainerIndex(pod, containerName)
+
+	if err != nil {
+		return err
+	}
+
+	if credentialMode == v1alpha1.CredentialModeStatic || credentialMode == v1alpha1.CredentialModeToken {
 
 		pod.Containers[containerIdx].Env = append(pod.Containers[containerIdx].Env, []corev1.EnvVar{
 			{
@@ -82,8 +152,19 @@ func ConfigureGCS(pod *corev1.PodSpec, containerName string, storageSecretName s
 			},
 		})
 	}
+
+	if credentialMode == v1alpha1.CredentialModeToken {
+		pod.Volumes = append(pod.Volumes, saTokenVolume(audience))
+
+		pod.Containers[containerIdx].VolumeMounts = append(pod.Containers[containerIdx].VolumeMounts, corev1.VolumeMount{
+			Name:      saTokenVolumeName,
+			MountPath: saTokenVolumeMountPath,
+		})
+
+	}
 	return nil
 }
+
 func configureS3StorageWithCOOAuth(pod *corev1.PodSpec, containerIdx int, tempo string, config *TokenCCOAuthConfig) {
 
 	pod.Containers[containerIdx].Env = append(pod.Containers[containerIdx].Env, []corev1.EnvVar{
@@ -107,7 +188,7 @@ func configureS3StorageWithCOOAuth(pod *corev1.PodSpec, containerIdx int, tempo 
 
 	// Define volume with credentials
 	pod.Volumes = append(pod.Volumes, tokenCCOAuthConfigVolume(tempo))
-	pod.Volumes = append(pod.Volumes, saTokenVolume())
+	pod.Volumes = append(pod.Volumes, saTokenVolume(awsDefaultAudience))
 
 	// Mount volume
 	pod.Containers[containerIdx].VolumeMounts = append(pod.Containers[containerIdx].VolumeMounts, corev1.VolumeMount{
@@ -185,9 +266,10 @@ func ConfigureStorage(storage StorageParams, tempo v1alpha1.TempoStack, pod *cor
 	if tempo.Spec.Storage.Secret.Name != "" {
 		switch tempo.Spec.Storage.Secret.Type {
 		case v1alpha1.ObjectStorageSecretAzure:
-			return ConfigureAzureStorage(pod, containerName, tempo.Spec.Storage.Secret.Name, &tempo.Spec.Storage.TLS)
+			return ConfigureAzureStorage(pod, storage.AzureStorage, containerName, tempo.Spec.Storage.Secret.Name, storage.CredentialMode)
 		case v1alpha1.ObjectStorageSecretGCS:
-			return ConfigureGCS(pod, containerName, tempo.Spec.Storage.Secret.Name, storage.CredentialMode)
+			return ConfigureGCS(pod, containerName, tempo.Spec.Storage.Secret.Name, storage.GCS.Audience,
+				storage.CredentialMode)
 		case v1alpha1.ObjectStorageSecretS3:
 			return ConfigureS3Storage(pod, containerName, tempo.Spec.Storage.Secret.Name, &tempo.Spec.Storage.TLS,
 				storage.CredentialMode, tempo.Name, storage.CloudCredentials.Environment)
@@ -217,8 +299,7 @@ func TempoFromManagerCredentialSecretName(secretName string) string {
 	return strings.TrimSuffix(secretName, "-managed-credentials")
 }
 
-func saTokenVolume() corev1.Volume {
-
+func saTokenVolume(audience string) corev1.Volume {
 	return corev1.Volume{
 		Name: saTokenVolumeName,
 		VolumeSource: corev1.VolumeSource{
@@ -228,7 +309,7 @@ func saTokenVolume() corev1.Volume {
 						ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
 							ExpirationSeconds: ptr.To(saTokenExpiration),
 							Path:              corev1.ServiceAccountTokenKey,
-							Audience:          awsDefaultAudience,
+							Audience:          audience,
 						},
 					},
 				},
