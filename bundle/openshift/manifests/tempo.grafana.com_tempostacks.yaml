@@ -289,6 +289,18 @@ spec:
                         description: CreateServiceMonitors specifies if ServiceMonitors
                           should be created for Tempo components.
                         type: boolean
+                      extraPrometheusRuleLabels:
+                        additionalProperties:
+                          type: string
+                        description: ExtraPrometheusRuleLabels defines additional
+                          labels for the PrometheusRule objects.
+                        type: object
+                      extraServiceMonitorLabels:
+                        additionalProperties:
+                          type: string
+                        description: ExtraServiceMonitorLabels defines additional
+                          labels for the ServiceMonitor objects.
+                        type: object
                     type: object
                   tracing:
                     description: Tracing defines a config for operands.
@@ -334,7 +346,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This is an alpha field and requires enabling the
+                          This field depends on the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -772,7 +784,7 @@ spec:
                               Claims lists the names of resources, defined in spec.resourceClaims,
                               that are used by this container.
 
-                              This is an alpha field and requires enabling the
+                              This field depends on the
                               DynamicResourceAllocation feature gate.
 
                               This field is immutable. It can only be set for containers.
@@ -1129,7 +1141,7 @@ spec:
                                   Claims lists the names of resources, defined in spec.resourceClaims,
                                   that are used by this container.
 
-                                  This is an alpha field and requires enabling the
+                                  This field depends on the
                                   DynamicResourceAllocation feature gate.
 
                                   This field is immutable. It can only be set for containers.
@@ -1514,7 +1526,7 @@ spec:
                                   Claims lists the names of resources, defined in spec.resourceClaims,
                                   that are used by this container.
 
-                                  This is an alpha field and requires enabling the
+                                  This field depends on the
                                   DynamicResourceAllocation feature gate.
 
                                   This field is immutable. It can only be set for containers.
@@ -1922,7 +1934,7 @@ spec:
                               Claims lists the names of resources, defined in spec.resourceClaims,
                               that are used by this container.
 
-                              This is an alpha field and requires enabling the
+                              This field depends on the
                               DynamicResourceAllocation feature gate.
 
                               This field is immutable. It can only be set for containers.
@@ -2272,7 +2284,7 @@ spec:
                               Claims lists the names of resources, defined in spec.resourceClaims,
                               that are used by this container.
 
-                              This is an alpha field and requires enabling the
+                              This field depends on the
                               DynamicResourceAllocation feature gate.
 
                               This field is immutable. It can only be set for containers.
@@ -2630,7 +2642,7 @@ spec:
                                   Claims lists the names of resources, defined in spec.resourceClaims,
                                   that are used by this container.
 
-                                  This is an alpha field and requires enabling the
+                                  This field depends on the
                                   DynamicResourceAllocation feature gate.
 
                                   This field is immutable. It can only be set for containers.
@@ -2746,7 +2758,7 @@ spec:
                                       Claims lists the names of resources, defined in spec.resourceClaims,
                                       that are used by this container.
 
-                                      This is an alpha field and requires enabling the
+                                      This field depends on the
                                       DynamicResourceAllocation feature gate.
 
                                       This field is immutable. It can only be set for containers.
@@ -2892,7 +2904,7 @@ spec:
                                   Claims lists the names of resources, defined in spec.resourceClaims,
                                   that are used by this container.
 
-                                  This is an alpha field and requires enabling the
+                                  This field depends on the
                                   DynamicResourceAllocation feature gate.
 
                                   This field is immutable. It can only be set for containers.
@@ -2962,7 +2974,7 @@ spec:
                                       Claims lists the names of resources, defined in spec.resourceClaims,
                                       that are used by this container.
 
-                                      This is an alpha field and requires enabling the
+                                      This field depends on the
                                       DynamicResourceAllocation feature gate.
 
                                       This field is immutable. It can only be set for containers.
