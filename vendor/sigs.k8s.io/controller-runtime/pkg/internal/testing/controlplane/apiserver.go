@@ -374,12 +374,7 @@ func (s *APIServer) populateAPIServerCerts() error {
 		return err
 	}
 
-	servingAddresses := []string{"localhost"}
-	if s.SecureServing.ListenAddr.Address != "" {
-		servingAddresses = append(servingAddresses, s.SecureServing.ListenAddr.Address)
-	}
-
-	servingCerts, err := ca.NewServingCert(servingAddresses...)
+	servingCerts, err := ca.NewServingCert()
 	if err != nil {
 		return err
 	}
@@ -389,10 +384,10 @@ func (s *APIServer) populateAPIServerCerts() error {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(s.CertDir, "apiserver.crt"), certData, 0o640); err != nil {
+	if err := os.WriteFile(filepath.Join(s.CertDir, "apiserver.crt"), certData, 0640); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(s.CertDir, "apiserver.key"), keyData, 0o640); err != nil {
+	if err := os.WriteFile(filepath.Join(s.CertDir, "apiserver.key"), keyData, 0640); err != nil {
 		return err
 	}
 
@@ -409,10 +404,10 @@ func (s *APIServer) populateAPIServerCerts() error {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(s.CertDir, saCertFile), saCert, 0o640); err != nil {
+	if err := os.WriteFile(filepath.Join(s.CertDir, saCertFile), saCert, 0640); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(s.CertDir, saKeyFile), saKey, 0o640)
+	return os.WriteFile(filepath.Join(s.CertDir, saKeyFile), saKey, 0640)
 }
 
 // Stop stops this process gracefully, waits for its termination, and cleans up
@@ -425,9 +420,6 @@ func (s *APIServer) Stop() error {
 		if err := s.processState.Stop(); err != nil {
 			return err
 		}
-	}
-	if s.Authn == nil {
-		return nil
 	}
 	return s.Authn.Stop()
 }
