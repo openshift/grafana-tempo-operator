@@ -2,6 +2,5 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: multitenancy-storage
 status:
   readyReplicas: 1
