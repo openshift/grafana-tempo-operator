@@ -20,6 +20,7 @@ import (
 	"github.com/grafana/tempo-operator/internal/manifests"
 	"github.com/grafana/tempo-operator/internal/manifests/cloudcredentials"
 	"github.com/grafana/tempo-operator/internal/manifests/manifestutils"
+	"github.com/grafana/tempo-operator/internal/manifests/networkpolicies"
 	"github.com/grafana/tempo-operator/internal/status"
 	"github.com/grafana/tempo-operator/internal/tlsprofile"
 )
@@ -100,6 +101,9 @@ func (r *TempoStackReconciler) createOrUpdate(ctx context.Context, tempo v1alpha
 
 	}
 
+	// Discover Kubernetes API server endpoints for NetworkPolicies
+	params.KubeAPIServer = networkpolicies.DiscoverKubernetesAPIServer(ctx, r.Client)
+
 	managedObjects, err := manifests.BuildAll(params)
 	// TODO (pavolloffay) check error type and change return appropriately
 	if err != nil {
@@ -162,6 +166,24 @@ func (r *TempoStackReconciler) findObjectsOwnedByTempoOperator(ctx context.Conte
 	}
 	for i := range ingressList.Items {
 		ownedObjects[ingressList.Items[i].GetUID()] = &ingressList.Items[i]
+	}
+
+	// Network policies use a subset of labels (without app.kubernetes.io/name)
+	// for gossip, metrics, and DNS policies, so we need a more permissive selector
+	networkPolicyListOps := &client.ListOptions{
+		Namespace: tempo.GetNamespace(),
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			"app.kubernetes.io/instance":   tempo.Name,
+			"app.kubernetes.io/managed-by": "tempo-operator",
+		}),
+	}
+	networkPolicyList := &networkingv1.NetworkPolicyList{}
+	err = r.List(ctx, networkPolicyList, networkPolicyListOps)
+	if err != nil {
+		return nil, fmt.Errorf("error listing network policies: %w", err)
+	}
+	for i := range networkPolicyList.Items {
+		ownedObjects[networkPolicyList.Items[i].GetUID()] = &networkPolicyList.Items[i]
 	}
 
 	// metrics reader for Jaeger UI Monitor Tab
