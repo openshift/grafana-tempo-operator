@@ -29,12 +29,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         persist-credentials: false
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
       with:
         go-version-file: go.mod
 
@@ -46,7 +46,7 @@ jobs:
     - name: "run tests"
       env:
         KUBE_VERSION: ${{ matrix.kube-version }}
-      run: make prepare-e2e e2e test-operator-metrics KUBE_VERSION=$KUBE_VERSION
+      run: make prepare-e2e e2e test-operator-metrics KUBE_VERSION="$KUBE_VERSION"
 
 
   upgrade-tests:
@@ -60,13 +60,13 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
         persist-credentials: false
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
       with:
         go-version-file: go.mod
 
@@ -75,17 +75,20 @@ jobs:
 
     - name: Start a local container registry with TLS
       run: |
-        # install mkcert
-        curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
-        chmod +x mkcert-v*-linux-amd64
-        sudo cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
+        # install mkcert with pinned version and checksum for reproducible builds
+        MKCERT_VERSION=v1.4.4
+        MKCERT_SHA256=6d31c65b03972c6dc4a14ab429f2928300518b26503f58723e532d1b0a3bbb52
+        curl -sLo mkcert "https://github.com/FiloSottile/mkcert/releases/download/${MKCERT_VERSION}/mkcert-${MKCERT_VERSION}-linux-amd64"
+        echo "${MKCERT_SHA256}  mkcert" | sha256sum -c
+        chmod +x mkcert
+        sudo cp mkcert /usr/local/bin/mkcert
 
         # create and install root CA in system store
         sudo mkcert -install
         sudo systemctl restart docker
 
         # copy root CA in kind's system store
-        sudo docker cp $(sudo mkcert -CAROOT)/rootCA.pem kind-control-plane:/usr/local/share/ca-certificates/mkcert.crt
+        sudo docker cp "$(sudo mkcert -CAROOT)/rootCA.pem" kind-control-plane:/usr/local/share/ca-certificates/mkcert.crt
         docker exec kind-control-plane update-ca-certificates
         docker exec kind-control-plane systemctl restart containerd
 
@@ -94,7 +97,8 @@ jobs:
         sudo mkcert -cert-file /tmp/localregistry/certs/tls.crt -key-file /tmp/localregistry/certs/tls.key localregistry
 
         # make registry reachable
-        echo $(dig +short $(hostname) | head -n1) localregistry | sudo tee -a /etc/hosts
+        host_ip=$(dig +short "$(hostname)" | head -n1)
+        echo "$host_ip localregistry" | sudo tee -a /etc/hosts
 
         # start registry
         docker run -d \
@@ -114,7 +118,8 @@ jobs:
     - name: Build and push operator and bundle image to local container registry
       run: |
         make opm
-        export LATEST_VERSION=v$(curl -sS "https://operatorhub.io/api/operator?packageName=tempo-operator" | jq -r .operator.version)
+        LATEST_VERSION="v$(curl -sS "https://operatorhub.io/api/operator?packageName=tempo-operator" | jq -r .operator.version)"
+        export LATEST_VERSION
         export BUNDLE_IMGS=ghcr.io/grafana/tempo-operator/tempo-operator-bundle:${LATEST_VERSION},${IMG_PREFIX}/tempo-operator-bundle:v${OPERATOR_VERSION}
         make bundle docker-build docker-push bundle-build bundle-push catalog-build catalog-push
       env:
