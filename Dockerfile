@@ -1,6 +1,6 @@
 # Build the manager binary
 # Digest pinned to golang:1.25 as of 2026-05-26; Dependabot will raise PRs when it changes.
-FROM golang:1.25@sha256:dd7d32e19b28621cd982082397fc0510d396805b717d5e77466aa2dd692340de AS builder
+FROM golang:1.26@sha256:3aff6657219a4d9c14e27fb1d8976c49c29fddb70ba835014f477e1c70636647 AS builder
 
 WORKDIR /workspace
 # Cache tool dependencies
@@ -25,7 +25,7 @@ RUN make build
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 # Digest pinned to distroless/static:nonroot as of 2026-05-26; Dependabot will raise PRs when it changes.
-FROM gcr.io/distroless/static:nonroot@sha256:963fa6c544fe5ce420f1f54fb88b6fb01479f054c8056d0f74cc2c6000df5240
+FROM gcr.io/distroless/static:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6
 WORKDIR /
 COPY --from=builder /workspace/bin/manager .
 USER 65532:65532
