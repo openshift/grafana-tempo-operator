@@ -13,19 +13,18 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configv1alpha1 "github.com/grafana/tempo-operator/api/config/v1alpha1"
@@ -47,14 +46,14 @@ const (
 type TempoStackReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Recorder   record.EventRecorder
+	Recorder   events.EventRecorder
 	CtrlConfig configv1alpha1.ProjectConfig
 	Version    version.Version
 }
 
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=services;configmaps;serviceaccounts;secrets;pods,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch;update
 // +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments/finalizers,verbs=update
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
@@ -66,6 +65,7 @@ type TempoStackReconciler struct {
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors;prometheusrules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=grafana.integreatly.org,resources=grafanadatasources,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 
 // Upgrate for 0.11.0 to Tempo 2.5
@@ -243,40 +243,41 @@ func (r *TempoStackReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	builder := ctrl.NewControllerManagedBy(mgr).
 		Named("tempostack").
-		For(&v1alpha1.TempoStack{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.ServiceAccount{}).
-		Owns(&corev1.Service{}).
-		Owns(&corev1.Secret{}).
+		For(&v1alpha1.TempoStack{}, createOrUpdateOnlyPred).
+		Owns(&corev1.ConfigMap{}, updateOrDeleteOnlyPred).
+		Owns(&corev1.ServiceAccount{}, updateOrDeleteOnlyPred).
+		Owns(&corev1.Service{}, updateOrDeleteOnlyPred).
+		Owns(&corev1.Secret{}, updateOrDeleteOnlyPred).
 		Owns(&appsv1.StatefulSet{}, updateOrDeleteWithStatusPred).
 		Owns(&appsv1.Deployment{}, updateOrDeleteWithStatusPred).
-		Owns(&networkingv1.Ingress{}).
-		Owns(&rbacv1.ClusterRole{}).
-		Owns(&rbacv1.ClusterRoleBinding{}).
-		Owns(&rbacv1.Role{}).
-		Owns(&rbacv1.RoleBinding{}).
+		Owns(&networkingv1.Ingress{}, updateOrDeleteOnlyPred).
+		Owns(&policyv1.PodDisruptionBudget{}, updateOrDeleteOnlyPred).
+		Owns(&rbacv1.ClusterRole{}, updateOrDeleteOnlyPred).
+		Owns(&rbacv1.ClusterRoleBinding{}, updateOrDeleteOnlyPred).
+		Owns(&rbacv1.Role{}, updateOrDeleteOnlyPred).
+		Owns(&rbacv1.RoleBinding{}, updateOrDeleteOnlyPred).
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findTempoStackForStorageSecret),
-			ctrlbuilder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+			createUpdateOrDeletePred,
 		)
 
 	if r.CtrlConfig.Gates.OpenShift.OpenShiftRoute {
-		builder = builder.Owns(&routev1.Route{})
+		builder = builder.Owns(&routev1.Route{}, updateOrDeleteOnlyPred)
 	}
 
 	if r.CtrlConfig.Gates.PrometheusOperator {
-		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
-		builder = builder.Owns(&monitoringv1.PrometheusRule{})
+		builder = builder.Owns(&monitoringv1.ServiceMonitor{}, updateOrDeleteOnlyPred)
+		builder = builder.Owns(&monitoringv1.PrometheusRule{}, updateOrDeleteOnlyPred)
 	}
 
 	if r.CtrlConfig.Gates.GrafanaOperator {
-		builder = builder.Owns(&grafanav1.GrafanaDatasource{})
+		builder = builder.Owns(&grafanav1.GrafanaDatasource{}, updateOrDeleteOnlyPred)
 	}
 
 	tokenCCOAuthEnv := cloudcredentials.DiscoverTokenCCOAuthConfig()
 	if tokenCCOAuthEnv != nil {
-		builder = builder.Owns(&cloudcredentialv1.CredentialsRequest{})
+		builder = builder.Owns(&cloudcredentialv1.CredentialsRequest{}, updateOrDeleteOnlyPred)
 	}
 
 	return builder.Complete(r)

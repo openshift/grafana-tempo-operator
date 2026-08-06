@@ -15,7 +15,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -64,8 +63,7 @@ const defaultUITLSTermination = v1alpha1.TLSRouteTerminationTypeEdge
 
 // SetupWebhookWithManager initializes the webhook.
 func (w *TempoStackWebhook) SetupWebhookWithManager(mgr ctrl.Manager, ctrlConfig configv1alpha1.ProjectConfig) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&v1alpha1.TempoStack{}).
+	return ctrl.NewWebhookManagedBy(mgr, &v1alpha1.TempoStack{}).
 		WithDefaulter(NewDefaulter(ctrlConfig)).
 		WithValidator(&validator{client: mgr.GetClient(), ctrlConfig: ctrlConfig}).
 		Complete()
@@ -85,13 +83,18 @@ type Defaulter struct {
 	ctrlConfig configv1alpha1.ProjectConfig
 }
 
-// Default applies default values to a Kubernetes object.
-func (d *Defaulter) Default(ctx context.Context, obj runtime.Object) error {
-	r, ok := obj.(*v1alpha1.TempoStack)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a TempoStack object but got %T", obj))
+// replicasForComponent returns the size's default replica count for the given
+// component, or the provided fallback when the size does not scale that component
+// (empty size or 1x.demo).
+func replicasForComponent(size v1alpha1.TempoStackSize, component string, fallback *int32) *int32 {
+	if replicas := manifestutils.ReplicasForComponent(size, component); replicas != nil {
+		return replicas
 	}
+	return fallback
+}
 
+// Default applies default values to a Kubernetes object.
+func (d *Defaulter) Default(ctx context.Context, r *v1alpha1.TempoStack) error {
 	log := ctrl.LoggerFrom(ctx).WithName("tempostack-webhook")
 	log.V(1).Info("running defaulter webhook", "name", r.Name)
 
@@ -148,22 +151,34 @@ func (d *Defaulter) Default(ctx context.Context, obj runtime.Object) error {
 			r.Spec.Template.Ingester.Replicas = defaultComponentReplicas
 		}
 	}
+	// Default replicas for the stateless components. When a size is set, use the
+	// size's per-component replica count (>=2 for HA on non-demo sizes); otherwise
+	// fall back to a single replica. User-set replicas are preserved.
 	if r.Spec.Template.Distributor.Replicas == nil {
-		r.Spec.Template.Distributor.Replicas = defaultComponentReplicas
+		r.Spec.Template.Distributor.Replicas = replicasForComponent(r.Spec.Size, manifestutils.DistributorComponentName, defaultComponentReplicas)
 	}
 	if r.Spec.Template.Compactor.Replicas == nil {
-		r.Spec.Template.Compactor.Replicas = defaultComponentReplicas
+		r.Spec.Template.Compactor.Replicas = replicasForComponent(r.Spec.Size, manifestutils.CompactorComponentName, defaultComponentReplicas)
 	}
 	if r.Spec.Template.Querier.Replicas == nil {
-		r.Spec.Template.Querier.Replicas = defaultComponentReplicas
+		r.Spec.Template.Querier.Replicas = replicasForComponent(r.Spec.Size, manifestutils.QuerierComponentName, defaultComponentReplicas)
 	}
 
 	if r.Spec.Template.QueryFrontend.Replicas == nil {
-		r.Spec.Template.QueryFrontend.Replicas = defaultComponentReplicas
+		r.Spec.Template.QueryFrontend.Replicas = replicasForComponent(r.Spec.Size, manifestutils.QueryFrontendComponentName, defaultComponentReplicas)
 	}
 
 	if r.Spec.Template.Gateway.Replicas == nil {
-		r.Spec.Template.Gateway.Replicas = defaultComponentReplicas
+		r.Spec.Template.Gateway.Replicas = replicasForComponent(r.Spec.Size, manifestutils.GatewayComponentName, defaultComponentReplicas)
+	}
+
+	// The metrics-generator is only deployed when enabled; unlike the other
+	// components it is not defaulted to a single replica when no size is set, so
+	// only apply the size-derived replica count here.
+	if r.Spec.Template.MetricsGenerator.Replicas == nil {
+		if replicas := manifestutils.ReplicasForComponent(r.Spec.Size, manifestutils.MetricsGeneratorComponentName); replicas != nil {
+			r.Spec.Template.MetricsGenerator.Replicas = replicas
+		}
 	}
 
 	// Set replication factor (we already computed effectiveRF above).
@@ -241,19 +256,11 @@ type validator struct {
 	ctrlConfig configv1alpha1.ProjectConfig
 }
 
-func (v *validator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	return v.validate(ctx, obj)
+func (v *validator) ValidateCreate(ctx context.Context, tempo *v1alpha1.TempoStack) (admission.Warnings, error) {
+	return v.validate(ctx, tempo)
 }
 
-func (v *validator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldTempo, ok := oldObj.(*v1alpha1.TempoStack)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a TempoStack object but got %T", oldObj))
-	}
-	newTempo, ok := newObj.(*v1alpha1.TempoStack)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a TempoStack object but got %T", newObj))
-	}
+func (v *validator) ValidateUpdate(ctx context.Context, oldTempo, newTempo *v1alpha1.TempoStack) (admission.Warnings, error) {
 	if newTempo.GetDeletionTimestamp() != nil &&
 		controllerutil.ContainsFinalizer(oldTempo, v1alpha1.TempoFinalizer) && !controllerutil.ContainsFinalizer(newTempo, v1alpha1.TempoFinalizer) {
 		// Do not validate if the specs are the same and only finalizer was removed
@@ -262,14 +269,10 @@ func (v *validator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.O
 		return nil, nil
 	}
 
-	return v.validate(ctx, newObj)
+	return v.validate(ctx, newTempo)
 }
 
-func (v *validator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	tempo, ok := obj.(*v1alpha1.TempoStack)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a TempoStack object but got %T", obj))
-	}
+func (v *validator) ValidateDelete(_ context.Context, tempo *v1alpha1.TempoStack) (admission.Warnings, error) {
 	status.ClearTempoStackMetrics(tempo.Namespace, tempo.Name)
 	return nil, nil
 }
@@ -317,6 +320,18 @@ func (v *validator) validateReplicationFactor(tempo v1alpha1.TempoStack) field.E
 			field.Invalid(path, tempo.Spec.ReplicationFactor,
 				fmt.Sprintf("replica factor of %d requires at least %d ingester replicas", replicatonFactor, quorum),
 			)}
+	}
+	return nil
+}
+
+// jaegerQueryDeprecationWarning is returned when the deprecated Jaeger Query component is enabled.
+const jaegerQueryDeprecationWarning = "spec.template.queryFrontend.jaegerQuery.enabled is deprecated and will be removed in a future release"
+
+// validateJaegerQueryDeprecation warns that the Jaeger Query component is deprecated.
+// The stack keeps working, therefore this is a warning and not an error.
+func (v *validator) validateJaegerQueryDeprecation(tempo v1alpha1.TempoStack) admission.Warnings {
+	if tempo.Spec.Template.QueryFrontend.JaegerQuery.Enabled {
+		return admission.Warnings{jaegerQueryDeprecationWarning}
 	}
 	return nil
 }
@@ -574,12 +589,7 @@ func (v *validator) validateConflictWithMonolithic(ctx context.Context, tempo *v
 	)
 }
 
-func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	tempo, ok := obj.(*v1alpha1.TempoStack)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a TempoStack object but got %T", obj))
-	}
-
+func (v *validator) validate(ctx context.Context, tempo *v1alpha1.TempoStack) (admission.Warnings, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("tempostack-webhook")
 	log.V(1).Info("running validating webhook", "name", tempo.Name)
 
@@ -612,6 +622,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 
 	allErrors = append(allErrors, v.validateReplicationFactor(*tempo)...)
 	allErrors = append(allErrors, v.validateQueryFrontend(*tempo)...)
+	allWarnings = append(allWarnings, v.validateJaegerQueryDeprecation(*tempo)...)
 	addValidationResults(v.validateGateway(ctx, *tempo))
 	allErrors = append(allErrors, v.validateTenantConfigs(*tempo)...)
 	allErrors = append(allErrors, v.validateObservability(*tempo)...)

@@ -12,7 +12,6 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -97,7 +96,7 @@ func TestMonolithicValidate(t *testing.T) {
 					},
 				},
 			},
-			warnings: admission.Warnings{},
+			warnings: admission.Warnings{jaegerUIDeprecationWarning},
 			errors: field.ErrorList{field.Invalid(
 				field.NewPath("spec", "jaegerui", "route", "enabled"),
 				true,
@@ -123,7 +122,7 @@ func TestMonolithicValidate(t *testing.T) {
 					},
 				},
 			},
-			warnings: admission.Warnings{},
+			warnings: admission.Warnings{jaegerUIDeprecationWarning},
 			errors:   field.ErrorList{},
 		},
 
@@ -168,7 +167,7 @@ func TestMonolithicValidate(t *testing.T) {
 					},
 				},
 			},
-			warnings: admission.Warnings{},
+			warnings: admission.Warnings{jaegerUIDeprecationWarning},
 			errors: field.ErrorList{field.Invalid(
 				field.NewPath("spec", "rbac", "enabled"),
 				true,
@@ -455,7 +454,7 @@ func TestConflictTempoStackValidation(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    runtime.Object
+		input    *v1alpha1.TempoMonolithic
 		expected field.ErrorList
 		client   client.Client
 	}{
@@ -489,6 +488,41 @@ func TestConflictTempoStackValidation(t *testing.T) {
 			v := &monolithicValidator{ctrlConfig: configv1alpha1.ProjectConfig{}, client: test.client}
 			err := v.validateConflictWithTempoStack(ctx, *tempoMonolithic)
 			assert.Equal(t, test.expected, err)
+		})
+	}
+}
+
+func TestValidateJaegerUIDeprecation(t *testing.T) {
+	validator := &monolithicValidator{}
+
+	tests := []struct {
+		name     string
+		jaegerUI *v1alpha1.MonolithicJaegerUISpec
+		expected admission.Warnings
+	}{
+		{
+			name:     "jaegerui not configured",
+			jaegerUI: nil,
+			expected: nil,
+		},
+		{
+			name:     "jaegerui disabled",
+			jaegerUI: &v1alpha1.MonolithicJaegerUISpec{Enabled: false},
+			expected: nil,
+		},
+		{
+			name:     "jaegerui enabled",
+			jaegerUI: &v1alpha1.MonolithicJaegerUISpec{Enabled: true},
+			expected: admission.Warnings{jaegerUIDeprecationWarning},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tempo := v1alpha1.TempoMonolithic{
+				Spec: v1alpha1.TempoMonolithicSpec{JaegerUI: test.jaegerUI},
+			}
+			assert.Equal(t, test.expected, validator.validateJaegerUIDeprecation(tempo))
 		})
 	}
 }
