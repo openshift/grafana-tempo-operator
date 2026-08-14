@@ -34,6 +34,11 @@ func BuildDistributor(params manifestutils.Params) ([]client.Object, error) {
 	}
 	gates := params.CtrlConfig.Gates
 	tempo := params.Tempo
+
+	if err := manifestutils.ConfigureReplication(&dep.Spec.Template, tempo.Spec.ReplicationZones, manifestutils.DistributorComponentName, tempo.Name); err != nil {
+		return nil, err
+	}
+
 	if gates.HTTPEncryption || gates.GRPCEncryption {
 		caBundleName := naming.SigningCABundleName(tempo.Name)
 		if err := manifestutils.ConfigureServiceCA(&dep.Spec.Template.Spec, caBundleName); err != nil {
@@ -161,8 +166,7 @@ func configureReceiversTLS(dep *v1.Deployment, caSecretName, certSecretName stri
 func deployment(params manifestutils.Params) *v1.Deployment {
 	tempo := params.Tempo
 	labels := manifestutils.ComponentLabels(manifestutils.DistributorComponentName, tempo.Name)
-	annotations := manifestutils.CommonAnnotations(params.ConfigChecksum)
-	annotations = manifestutils.AddCertificateHashAnnotations(tempo.GetAnnotations(), annotations)
+	annotations := manifestutils.CommonAnnotations(params)
 	cfg := tempo.Spec.Template.Distributor
 	image := tempo.Spec.Images.Tempo
 	if image == "" {

@@ -36,6 +36,10 @@ func BuildMetricsGenerator(params manifestutils.Params) ([]client.Object, error)
 	gates := params.CtrlConfig.Gates
 	tempo := params.Tempo
 
+	if err = manifestutils.ConfigureReplication(&d.Spec.Template, tempo.Spec.ReplicationZones, manifestutils.MetricsGeneratorComponentName, tempo.Name); err != nil {
+		return nil, err
+	}
+
 	if gates.HTTPEncryption || gates.GRPCEncryption {
 		caBundleName := naming.SigningCABundleName(tempo.Name)
 		if err := manifestutils.ConfigureServiceCA(&d.Spec.Template.Spec, caBundleName); err != nil {
@@ -63,8 +67,7 @@ func resources(tempo v1alpha1.TempoStack) corev1.ResourceRequirements {
 func deployment(params manifestutils.Params) *v1.Deployment {
 	tempo := params.Tempo
 	labels := manifestutils.ComponentLabels(manifestutils.MetricsGeneratorComponentName, tempo.Name)
-	annotations := manifestutils.CommonAnnotations(params.ConfigChecksum)
-	annotations = manifestutils.AddCertificateHashAnnotations(tempo.GetAnnotations(), annotations)
+	annotations := manifestutils.CommonAnnotations(params)
 	cfg := tempo.Spec.Template.MetricsGenerator
 	image := tempo.Spec.Images.Tempo
 	if image == "" {
