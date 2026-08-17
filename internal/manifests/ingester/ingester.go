@@ -34,6 +34,10 @@ func BuildIngester(params manifestutils.Params) ([]client.Object, error) {
 	gates := params.CtrlConfig.Gates
 	tempo := params.Tempo
 
+	if err := manifestutils.ConfigureReplication(&ss.Spec.Template, tempo.Spec.ReplicationZones, manifestutils.IngesterComponentName, tempo.Name); err != nil {
+		return nil, err
+	}
+
 	if gates.HTTPEncryption || gates.GRPCEncryption {
 		caBundleName := naming.SigningCABundleName(tempo.Name)
 		if err := manifestutils.ConfigureServiceCA(&ss.Spec.Template.Spec, caBundleName); err != nil {
@@ -58,9 +62,8 @@ func BuildIngester(params manifestutils.Params) ([]client.Object, error) {
 func statefulSet(params manifestutils.Params) (*v1.StatefulSet, error) {
 	tempo := params.Tempo
 	labels := manifestutils.ComponentLabels(manifestutils.IngesterComponentName, tempo.Name)
-	annotations := manifestutils.CommonAnnotations(params.ConfigChecksum)
+	annotations := manifestutils.CommonAnnotations(params)
 	annotations = manifestutils.StorageSecretHash(params.StorageParams, annotations)
-	annotations = manifestutils.AddCertificateHashAnnotations(tempo.GetAnnotations(), annotations)
 
 	filesystem := corev1.PersistentVolumeFilesystem
 	cfg := tempo.Spec.Template.Ingester

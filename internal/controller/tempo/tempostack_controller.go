@@ -160,14 +160,16 @@ func (r *TempoStackReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		tempo = *upgraded.(*v1alpha1.TempoStack)
 	}
 
+	var certHashAnnotations map[string]string
 	if r.CtrlConfig.Gates.BuiltInCertManagement.Enabled {
-		err := handlers.CreateOrRotateCertificates(ctx, log, req, r.Client, r.Scheme, r.CtrlConfig.Gates, certrotation.TempoStackComponentCertSecretNames(req.Name))
+		var err error
+		certHashAnnotations, err = handlers.CreateOrRotateCertificates(ctx, log, req, r.Client, r.Scheme, r.CtrlConfig.Gates, certrotation.TempoStackComponentCertSecretNames(req.Name))
 		if err != nil {
 			return r.handleReconcileStatus(ctx, log, tempo, fmt.Errorf("built in cert manager error: %w", err))
 		}
 	}
 
-	err := r.createOrUpdate(ctx, tempo)
+	err := r.createOrUpdate(ctx, tempo, certHashAnnotations)
 	if err != nil {
 		return r.handleReconcileStatus(ctx, log, tempo, err)
 	}
@@ -339,8 +341,7 @@ func (r *TempoStackReconciler) GetPodsComponent(ctx context.Context, componentNa
 	return pods, err
 }
 
-// PatchStatus patches the status field of the CR.
-func (r *TempoStackReconciler) PatchStatus(ctx context.Context, changed, original *v1alpha1.TempoStack) error {
-	statusPatch := client.MergeFrom(original)
-	return r.Client.Status().Patch(ctx, changed, statusPatch)
+// UpdateStatus updates the status field of the CR.
+func (r *TempoStackReconciler) UpdateStatus(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+	return r.Client.Status().Update(ctx, obj, opts...)
 }

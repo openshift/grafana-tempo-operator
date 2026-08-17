@@ -34,6 +34,10 @@ func BuildQuerier(params manifestutils.Params) ([]client.Object, error) {
 	gates := params.CtrlConfig.Gates
 	tempo := params.Tempo
 
+	if err := manifestutils.ConfigureReplication(&d.Spec.Template, tempo.Spec.ReplicationZones, manifestutils.QuerierComponentName, tempo.Name); err != nil {
+		return nil, err
+	}
+
 	if gates.HTTPEncryption || gates.GRPCEncryption {
 		caBundleName := naming.SigningCABundleName(tempo.Name)
 		if err := manifestutils.ConfigureServiceCA(&d.Spec.Template.Spec, caBundleName); err != nil {
@@ -64,8 +68,7 @@ func resources(tempo v1alpha1.TempoStack) corev1.ResourceRequirements {
 func deployment(params manifestutils.Params) (*v1.Deployment, error) {
 	tempo := params.Tempo
 	labels := manifestutils.ComponentLabels(manifestutils.QuerierComponentName, tempo.Name)
-	annotations := manifestutils.CommonAnnotations(params.ConfigChecksum)
-	annotations = manifestutils.AddCertificateHashAnnotations(tempo.GetAnnotations(), annotations)
+	annotations := manifestutils.CommonAnnotations(params)
 	cfg := tempo.Spec.Template.Querier
 	image := tempo.Spec.Images.Tempo
 	if image == "" {
